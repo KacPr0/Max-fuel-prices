@@ -1,0 +1,396 @@
+<!DOCTYPE html>
+<html lang="pl">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Ceny Paliw PL - Panel Administracyjny</title>
+  <!-- Google Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&amp;family=Outfit:wght@400;600;700;800&amp;display=swap" rel="stylesheet">
+  <!-- CSS Styles -->
+  <link rel="stylesheet" href="styles.css">
+  <!-- Lucide Icons (CDN) -->
+  <script src="https://unpkg.com/lucide@latest"></script>
+</head>
+<body>
+  <div class="app-container">
+    
+    <!-- Sidebar Navigation -->
+    <aside class="sidebar">
+      <div class="brand">
+        <div class="brand-icon" style="background: none; -webkit-text-fill-color: initial; display: flex; align-items: center;"><img src="logo.png" alt="Logo" style="width: 42px; height: 42px; border-radius: 12px; object-fit: cover; filter: drop-shadow(0 0 8px rgba(139, 92, 246, 0.4));"></div>
+        <div class="brand-text">
+          <h1>Ceny Paliw PL</h1>
+          <span>Panel Bota</span>
+        </div>
+      </div>
+      
+      <nav class="nav-menu">
+        <button class="nav-btn active" data-tab="dashboard">
+          <i data-lucide="layout-dashboard"></i> Pulpit sterowniczy
+        </button>
+        <button class="nav-btn" data-tab="customizer">
+          <i data-lucide="palette"></i> Wygląd grafiki
+        </button>
+        <button class="nav-btn" data-tab="settings">
+          <i data-lucide="settings"></i> Ustawienia API
+        </button>
+        <button class="nav-btn" data-tab="console">
+          <i data-lucide="terminal"></i> Logi systemowe
+        </button>
+      </nav>
+
+      <div class="bot-status-capsule offline" id="sidebar-status">
+        <span class="status-indicator"></span>
+        <span class="status-txt">Łączenie...</span>
+      </div>
+    </aside>
+
+    <!-- Main Content Area -->
+    <main class="main-content">
+      
+      <!-- HEADER -->
+      <header class="top-header">
+        <div class="page-title">
+          <h2 id="current-tab-title">Pulpit sterowniczy</h2>
+          <p id="current-tab-desc">Podgląd aktualnych cen, harmonogramu i statusu bota.</p>
+        </div>
+        <div class="header-actions">
+          <button class="btn btn-primary btn-glow" id="btn-manual-trigger">
+            <i data-lucide="send"></i> Opublikuj Teraz (Max Ceny)
+          </button>
+          <button class="btn btn-secondary" id="btn-trigger-forecast">
+            <i data-lucide="trending-up"></i> Opublikuj Prognozę
+          </button>
+        </div>
+      </header>
+
+      <!-- TAB: DASHBOARD -->
+      <section class="tab-content active" id="tab-dashboard">
+        <!-- Status Bar Cards -->
+        <div class="grid-stats">
+          <div class="stat-card">
+            <div class="stat-icon mode-icon"><i data-lucide="cpu"></i></div>
+            <div class="stat-info">
+              <h3>Tryb pracy</h3>
+              <p class="stat-val" id="stat-mode">Ładowanie...</p>
+              <span class="stat-sub" id="stat-mode-sub">Mock Mode</span>
+            </div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-icon max-icon"><i data-lucide="dollar-sign"></i></div>
+            <div class="stat-info">
+              <h3>Ostatnia publikacja (Max)</h3>
+              <p class="stat-val" id="stat-last-max">Ładowanie...</p>
+              <span class="stat-sub">Ceny maksymalne</span>
+            </div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-icon forecast-icon"><i data-lucide="calendar"></i></div>
+            <div class="stat-info">
+              <h3>Ostatnia prognoza</h3>
+              <p class="stat-val" id="stat-last-forecast">Ładowanie...</p>
+              <span class="stat-sub">Prognozy tygodniowe</span>
+            </div>
+          </div>
+        </div>
+
+        <div class="dashboard-grid">
+          <!-- Left Column: Prices overview -->
+          <div class="grid-col-left">
+            <!-- Scraped prices card -->
+            <div class="content-card glass-panel">
+              <div class="card-header">
+                <h3>Aktualne ceny z e-petrol.pl</h3>
+                <span class="badge" id="scraped-time">Brak danych</span>
+              </div>
+              <div class="card-body">
+                <div class="price-section-title">URZĘDOWE CENY MAKSYMALNE</div>
+                <div class="prices-grid" id="max-prices-container">
+                  <div class="price-item pb95">
+                    <div class="fuel-badge">95</div>
+                    <div class="price-details">
+                      <span class="label">Benzyna Pb95</span>
+                      <span class="val" id="price-max-95">- zł</span>
+                    </div>
+                  </div>
+                  <div class="price-item pb98">
+                    <div class="fuel-badge">98</div>
+                    <div class="price-details">
+                      <span class="label">Benzyna Pb98</span>
+                      <span class="val" id="price-max-98">- zł</span>
+                    </div>
+                  </div>
+                  <div class="price-item diesel">
+                    <div class="fuel-badge">ON</div>
+                    <div class="price-details">
+                      <span class="label">Oleju Napędowy (Diesel)</span>
+                      <span class="val" id="price-max-on">- zł</span>
+                    </div>
+                  </div>
+                </div>
+
+                <div class="price-section-title spacer-top">PROGNOZA TYGODNIOWA</div>
+                <div class="prices-grid 2x2" id="forecasts-container">
+                  <div class="price-item pb95">
+                    <div class="fuel-badge small">95</div>
+                    <div class="price-details">
+                      <span class="label">Pb95</span>
+                      <span class="val" id="price-fore-95">- zł</span>
+                    </div>
+                  </div>
+                  <div class="price-item pb98">
+                    <div class="fuel-badge small">98</div>
+                    <div class="price-details">
+                      <span class="label">Pb98</span>
+                      <span class="val" id="price-fore-98">- zł</span>
+                    </div>
+                  </div>
+                  <div class="price-item diesel">
+                    <div class="fuel-badge small">ON</div>
+                    <div class="price-details">
+                      <span class="label">Diesel (ON)</span>
+                      <span class="val" id="price-fore-on">- zł</span>
+                    </div>
+                  </div>
+                  <div class="price-item lpg">
+                    <div class="fuel-badge small">LPG</div>
+                    <div class="price-details">
+                      <span class="label">Autogaz (LPG)</span>
+                      <span class="val" id="price-fore-lpg">- zł</span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <!-- Bot scheduler details -->
+            <div class="content-card glass-panel spacer-top">
+              <div class="card-header">
+                <h3>Harmonogram bota (Inteligentny)</h3>
+                <span class="status-tag active">Aktywny</span>
+              </div>
+              <div class="card-body schedule-info">
+                <p>Bot sprawdza ceny automatycznie co <strong>15 minut</strong> w godzinach <strong>09:00 - 15:59</strong> codziennie.</p>
+                <div class="timeline">
+                  <div class="timeline-step">
+                    <div class="circle done">✓</div>
+                    <div class="text">Scrapowanie e-petrol.pl w poszukiwaniu nowych danych na kolejny dzień.</div>
+                  </div>
+                  <div class="timeline-step">
+                    <div class="circle">⚡</div>
+                    <div class="text">Wykrycie nowej daty w tabeli ME -> Natychmiastowe wyzwolenie publikacji.</div>
+                  </div>
+                  <div class="timeline-step">
+                    <div class="circle">✓</div>
+                    <div class="text">Blokada ponownej publikacji w tym samym dniu (ochrona przed spamem).</div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Right Column: Visual Preview -->
+          <div class="grid-col-right">
+            <div class="content-card glass-panel preview-panel">
+              <div class="card-header">
+                <h3>Podgląd grafiki do publikacji</h3>
+                <div class="tabs-mini">
+                  <button class="mini-tab active" data-preview-type="maxPrices">Ceny Maksymalne</button>
+                  <button class="mini-tab" data-preview-type="forecasts">Prognoza</button>
+                </div>
+              </div>
+              <div class="card-body text-center">
+                <div class="image-preview-container">
+                  <img id="image-card-preview" src="" alt="Podgląd karty cen paliw..." />
+                  <div class="preview-spinner" id="preview-loader">
+                    <div class="spinner"></div>
+                  </div>
+                </div>
+                <div class="preview-controls">
+                  <button class="btn btn-secondary btn-sm" id="btn-refresh-preview">
+                    <i data-lucide="refresh-cw"></i> Odśwież podgląd
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- TAB: CUSTOMIZER -->
+      <section class="tab-content" id="tab-customizer">
+        <div class="customizer-grid">
+          <!-- Settings Column -->
+          <div class="customizer-settings glass-panel">
+            <h3>Konfiguracja szablonu graficznego</h3>
+            <p class="description">Ustawienia te zmieniają tło i teksty bezpośrednio w pliku graficznym bota.</p>
+
+            <form id="customizer-form" class="spacer-top">
+              <div class="form-group">
+                <label for="input-branding">Branding / Nazwa Profilu w stopce:</label>
+                <input type="text" id="input-branding" placeholder="@MaksymalneCenyPaliw" value="@MaksymalneCenyPaliw" />
+                <span class="help-txt">Zostanie umieszczony w prawym dolnym rogu wygenerowanej grafiki.</span>
+              </div>
+
+              <div class="form-group">
+                <label>Paleta kolorów tła (Gradient):</label>
+                <div class="gradient-presets">
+                  <button type="button" class="preset-btn" data-bg1="#0f172a" data-bg2="#1e1b4b" style="background: linear-gradient(135deg, #0f172a, #1e1b4b);"></button>
+                  <button type="button" class="preset-btn" data-bg1="#020617" data-bg2="#311042" style="background: linear-gradient(135deg, #020617, #311042);"></button>
+                  <button type="button" class="preset-btn active" data-bg1="#060517" data-bg2="#170514" style="background: linear-gradient(135deg, #060517, #170514);"></button>
+                  <button type="button" class="preset-btn" data-bg1="#0f172a" data-bg2="#0f172a" style="background: #0f172a;"></button>
+                </div>
+              </div>
+
+              <div class="color-pickers form-row">
+                <div class="form-group col-half">
+                  <label for="color-bg1">Kolor startowy gradientu:</label>
+                  <input type="color" id="color-bg1" value="#060517" />
+                </div>
+                <div class="form-group col-half">
+                  <label for="color-bg2">Kolor końcowy gradientu:</label>
+                  <input type="color" id="color-bg2" value="#170514" />
+                </div>
+              </div>
+
+              <div class="form-actions spacer-top">
+                <button type="button" class="btn btn-primary" id="btn-save-branding">Zastosuj zmiany</button>
+              </div>
+            </form>
+          </div>
+
+          <!-- Preview Column -->
+          <div class="customizer-preview">
+            <div class="content-card glass-panel">
+              <div class="card-header">
+                <h3>Aktualny podgląd z Twoimi zmianami</h3>
+                <div class="tabs-mini">
+                  <button class="mini-tab-cust active" data-preview-type="maxPrices">Ceny Maksymalne</button>
+                  <button class="mini-tab-cust" data-preview-type="forecasts">Prognoza</button>
+                </div>
+              </div>
+              <div class="card-body text-center">
+                <div class="image-preview-container">
+                  <img id="image-custom-preview" src="" alt="Podgląd karty graficznej..." />
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- TAB: SETTINGS -->
+      <section class="tab-content" id="tab-settings">
+        <div class="glass-panel settings-form-container">
+          <h3>Dane uwierzytelniające API</h3>
+          <p class="description">Te klucze są zapisywane wyłącznie **lokalnie** na Twoim komputerze w pliku `.env`. Pozwalają botowi na rzeczywiste publikowanie postów.</p>
+
+          <form id="api-settings-form" class="spacer-top">
+            <!-- Mode Toggle -->
+            <div class="settings-section">
+              <h4>MOCK MODE (Tryb Symulacji)</h4>
+              <div class="form-group checkbox-group">
+                <label class="switch-container">
+                  <input type="checkbox" id="check-mock-mode" checked />
+                  <span class="slider"></span>
+                </label>
+                <div class="switch-details">
+                  <span class="switch-title">Uruchom w trybie symulacji</span>
+                  <span class="switch-desc">Włączone: Posty będą zapisywane lokalnie w folderze /history (idealne do testów). Wyłączone: Posty będą wysyłane na prawdziwe portale.</span>
+                </div>
+              </div>
+            </div>
+
+            <!-- Twitter / X -->
+            <div class="settings-section spacer-top">
+              <h4>Klucze API Twitter / X</h4>
+              <div class="form-row">
+                <div class="form-group col-half">
+                  <label for="input-x-key">API Key (Consumer Key):</label>
+                  <input type="password" id="input-x-key" placeholder="Wklej API Key..." />
+                </div>
+                <div class="form-group col-half">
+                  <label for="input-x-secret">API Key Secret:</label>
+                  <input type="password" id="input-x-secret" placeholder="Wklej API Key Secret..." />
+                </div>
+              </div>
+              <div class="form-row">
+                <div class="form-group col-half">
+                  <label for="input-x-token">Access Token:</label>
+                  <input type="password" id="input-x-token" placeholder="Wklej Access Token..." />
+                </div>
+                <div class="form-group col-half">
+                  <label for="input-x-token-secret">Access Token Secret:</label>
+                  <input type="password" id="input-x-token-secret" placeholder="Wklej Access Token Secret..." />
+                </div>
+              </div>
+            </div>
+
+            <!-- Meta / FB / IG -->
+            <div class="settings-section spacer-top">
+              <h4>Klucze API Meta (Facebook &amp; Instagram)</h4>
+              <div class="form-group">
+                <label for="input-meta-token">Page Access Token (Stały token dostępu do strony):</label>
+                <input type="password" id="input-meta-token" placeholder="Wklej token dostępu Meta Graph API..." />
+              </div>
+              <div class="form-row">
+                <div class="form-group col-half">
+                  <label for="input-meta-page-id">Facebook Page ID (ID Fanpage):</label>
+                  <input type="text" id="input-meta-page-id" placeholder="Wprowadź ID Strony na Facebooku..." />
+                </div>
+                <div class="form-group col-half">
+                  <label for="input-meta-ig-id">Instagram Business Account ID:</label>
+                  <input type="text" id="input-meta-ig-id" placeholder="Wprowadź ID Profesjonalnego konta Instagram..." />
+                </div>
+              </div>
+            </div>
+
+            <!-- ImgBB -->
+            <div class="settings-section spacer-top">
+              <h4>Przechowywanie zdjęć w chmurze (Instagram)</h4>
+              <p class="description">Instagram API wymaga, by zdjęcia były dostępne pod publicznym adresem URL. Bot używa darmowego hostingu **ImgBB** do tymczasowego przesyłania wygenerowanej grafiki.</p>
+              <div class="form-group">
+                <label for="input-imgbb-key">ImgBB API Key:</label>
+                <input type="password" id="input-imgbb-key" placeholder="Wklej klucz API ze strony api.imgbb.com..." />
+                <span class="help-txt">Klucz uzyskasz darmowo po zarejestrowaniu się na stronie api.imgbb.com</span>
+              </div>
+            </div>
+
+            <!-- Status Alerts & Submit -->
+            <div class="settings-actions spacer-top">
+              <div id="settings-save-status" class="status-msg"></div>
+              <button type="submit" class="btn btn-primary" id="btn-save-settings">Zapisz konfigurację w pliku .env</button>
+            </div>
+          </form>
+        </div>
+      </section>
+
+      <!-- TAB: CONSOLE -->
+      <section class="tab-content" id="tab-console">
+        <div class="glass-panel console-container">
+          <div class="console-header">
+            <div class="title-with-icon">
+              <span class="console-dot"></span>
+              <h3>Terminal bota - Logi w czasie rzeczywistym</h3>
+            </div>
+            <button class="btn btn-secondary btn-sm" id="btn-clear-console">
+              <i data-lucide="trash-2"></i> Wyczyść widok
+            </button>
+          </div>
+          <div class="console-body" id="console-output">
+            <!-- Logs will render here -->
+            <div class="console-line system">[SYSTEM] Łączenie ze strumieniem logów...</div>
+          </div>
+        </div>
+      </section>
+
+    </main>
+
+  </div>
+
+  <!-- JS App -->
+  <script src="app.js"></script>
+</body>
+</html>

@@ -1,0 +1,62 @@
+name: Bot Cen Paliw PL
+
+on:
+  schedule:
+    # Uruchamiaj co 15 minut w godzinach 8:00 - 15:00 UTC (czyli ok. 9:00/10:00 do 16:00/17:00 czasu polskiego)
+    # Jest to idealny przedział czasowy, w którym e-petrol.pl publikuje nowe oficjalne ceny.
+    - cron: '*/15 8-15 * * *'
+  
+  # Umożliwia ręczne uruchomienie bota jednym kliknięciem bezpośrednio z interfejsu GitHub
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  run-bot:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Klonowanie repozytorium
+        uses: actions/checkout@v4
+        with:
+          # Wymagane, aby zachować pełną historię commitów do późniejszego zapisu stanu bota
+          fetch-depth: 0
+
+      - name: Konfiguracja Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: 'npm'
+
+      - name: Instalacja zależności
+        run: npm install
+
+      - name: Uruchomienie bota cen paliw
+        run: node runActionsBot.js
+        env:
+          # Wyłączamy tryb symulacji w GitHub Actions, aby bot publikował na żywo
+          MOCK_MODE: 'false'
+          BRANDING_TEXT: '@MaksymalneCenyPaliw'
+          
+          # Klucze API Twitter / X (przekazywane z bezpiecznych GitHub Secrets)
+          X_API_KEY: ${{ secrets.X_API_KEY }}
+          X_API_KEY_SECRET: ${{ secrets.X_API_KEY_SECRET }}
+          X_API_ACCESS_TOKEN: ${{ secrets.X_API_ACCESS_TOKEN }}
+          X_API_ACCESS_TOKEN_SECRET: ${{ secrets.X_API_ACCESS_TOKEN_SECRET }}
+          
+          # Klucze API Meta (Facebook & Instagram)
+          META_PAGE_ACCESS_TOKEN: ${{ secrets.META_PAGE_ACCESS_TOKEN }}
+          META_PAGE_ID: ${{ secrets.META_PAGE_ID }}
+          META_INSTAGRAM_BUSINESS_ID: ${{ secrets.META_INSTAGRAM_BUSINESS_ID }}
+          
+          # Klucz API hostingu ImgBB
+          IMGBB_API_KEY: ${{ secrets.IMGBB_API_KEY }}
+
+      - name: Zapisanie stanu bota (db.json i logi)
+        run: |
+          git config --global user.name "github-actions[bot]"
+          git config --global user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add db.json bot_activity.log
+          # Sprawdź, czy są jakieś zmiany do zakomitowania (np. bot opublikował nowy post i zaktualizował db.json)
+          git diff --quiet && git diff --staged --quiet || (git commit -m "chore: aktualizacja stanu bota [skip ci]" && git push)

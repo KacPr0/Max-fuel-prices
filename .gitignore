@@ -1,0 +1,45 @@
+# Zależności NPM (katalogi instalacyjne)
+node_modules/
+jspm_packages/
+web_modules/
+
+# Środowisko i sekrety
+.env
+.env.local
+.env.production
+.env.development
+.env.staging
+
+# Lokalne archiwum postów z trybu symulacji
+history/
+
+# Pliki tymczasowe, pobrane strony i obrazy testowe w głównym katalogu
+epetrol.html
+test_max_prices.png
+test_forecasts.png
+*.log
+
+# Ale chcemy śledzić oficjalny log aktywności bota!
+!bot_activity.log
+
+# Logi błędów NPM
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+
+# Pliki systemowe i IDE
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+.idea/
+.vscode/
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+*.sw?
