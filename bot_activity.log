@@ -31,3 +31,15 @@
 [1.06.2026, 20:09:32] [SYSTEM] Serwer bota uruchomiony na porcie 3000
 [1.06.2026, 20:09:32] [SYSTEM] Panel Web dostępny pod adresem: http://localhost:3000
 [1.06.2026, 20:40:37] [SYSTEM] Zaktualizowano ustawienia i klucze API z poziomu Dashboardu.
+[2.06.2026, 11:58:11] [GITHUB ACTIONS] Rozpoczęcie automatycznego przebiegu bota...
+[2.06.2026, 11:58:11] [BOT] Sprawdzanie strony e-petrol.pl pod kątem nowych danych...
+[2.06.2026, 11:58:13] [NOWE DANE] Wykryto nowe ceny maksymalne na dzień: 2026-06-03!
+[2.06.2026, 11:58:13] [BOT] Generowanie grafiki cen maksymalnych...
+[2.06.2026, 11:58:14] [BOT] Rozpoczynam publikację cen maksymalnych...
+[2.06.2026, 11:58:14] [SYSTEM] Zapisano kopię posta lokalnie w history/maxPrices_2026-06-02T11-58-14-471Z.png
+[2.06.2026, 11:58:14] [X/Twitter] Pominięto (Brak skonfigurowanych kluczy API dla Twitter/X).
+[2.06.2026, 11:58:14] [Facebook] Pominięto (Brak skonfigurowanych kluczy API dla Facebooka).
+[2.06.2026, 11:58:14] [Instagram] Pominięto (Brak skonfigurowanych kluczy API / ID dla Instagrama).
+[2.06.2026, 11:58:14] [BŁĄD] Publikacja cen maksymalnych nie powiodła się.
+[2.06.2026, 11:58:14] [INFO] Prognoza na okres 1-7 czerwca 2026 została już wcześniej opublikowana.
+[2.06.2026, 11:58:14] [GITHUB ACTIONS] Zakończenie przebiegu. Sukces: true
