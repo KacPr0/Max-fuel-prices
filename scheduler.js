@@ -21,8 +21,7 @@ function loadDatabase() {
   if (!fs.existsSync(dbPath)) {
     const initialDb = {
       lastPublishedMaxPriceDate: '', // e.g. '2026-05-30'
-      lastPublishedForecastPeriod: '', // e.g. '1-7 czerwca 2026'
-      lastCheckTime: ''
+      lastPublishedForecastPeriod: '' // e.g. '1-7 czerwca 2026'
     };
     fs.writeFileSync(dbPath, JSON.stringify(initialDb, null, 2));
     return initialDb;
@@ -43,9 +42,6 @@ async function checkAndPublish(options = {}) {
   
   logActivity('[BOT] Sprawdzanie strony e-petrol.pl pod kątem nowych danych...');
   const scrapeResult = await scrapeFuelPrices();
-  
-  db.lastCheckTime = new Date().toISOString();
-  saveDatabase(db);
 
   if (!scrapeResult.success) {
     logActivity(`[BŁĄD] Nie udało się pobrać danych: ${scrapeResult.error}`);
