@@ -58,5 +58,5 @@ jobs:
           git config --global user.name "github-actions[bot]"
           git config --global user.email "41898282+github-actions[bot]@users.noreply.github.com"
           git add db.json
-          # Sprawdź, czy są jakieś zmiany do zakomitowania (np. bot opublikował nowy post i zaktualizował db.json)
-          git diff --quiet && git diff --staged --quiet || (git commit -m "chore: aktualizacja stanu bota [skip ci]" && git push)
+          # Sprawdź, czy plik db.json ma zmiany gotowe do zatwierdzenia (staged)
+          git diff --cached --quiet || (git commit -m "chore: aktualizacja stanu bota [skip ci]" && git push)
