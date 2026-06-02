@@ -1,9 +1,4 @@
 {
   "lastPublishedMaxPriceDate": "2026-06-03",
-<<<<<<< HEAD
-  "lastPublishedForecastPeriod": "1-7 czerwca 2026",
-  "lastCheckTime": "2026-06-02T16:22:55.602Z"
-=======
   "lastPublishedForecastPeriod": "1-7 czerwca 2026"
->>>>>>> 11f68a3 (wyciszenie pustych commitow w db.json przez usuniecie lastCheckTime)
 }
