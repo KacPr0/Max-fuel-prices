@@ -27,20 +27,18 @@ function parsePrice(str) {
 function getPriceDiff(tomorrowStr, todayStr) {
   const tomorrow = parsePrice(tomorrowStr);
   const today = parsePrice(todayStr);
-  if (!tomorrow || !today) return { text: '', color: '#94a3b8', arrow: '' };
+  if (!tomorrow || !today) return { sign: '', value: 'bez zmian', color: '#94a3b8' };
   
   const diff = tomorrow - today;
   if (diff === 0) {
-    return { text: 'bez zmian', color: '#94a3b8', arrow: '→' };
+    return { sign: '', value: 'bez zmian', color: '#94a3b8' };
   }
   
   const diffFormatted = Math.abs(diff).toFixed(2).replace('.', ',');
   if (diff < 0) {
-    // Price drop - good news! We show it green
-    return { text: `-${diffFormatted} zł`, color: '#10b981', arrow: '↓' };
+    return { sign: '-', value: `${diffFormatted} zł`, color: '#10b981' };
   } else {
-    // Price rise - bad news! We show it red
-    return { text: `+${diffFormatted} zł`, color: '#ef4444', arrow: '↑' };
+    return { sign: '+', value: `${diffFormatted} zł`, color: '#ef4444' };
   }
 }
 
@@ -72,7 +70,7 @@ function generateMaxPricesSVG(data, brandingText, customOptions = {}) {
 
 
   return `
-    <svg width="1080" height="1080" viewBox="0 0 1080 1080" xmlns="http://www.w3.org/2000/svg">
+    <svg width="1080" height="1350" viewBox="0 0 1080 1350" xmlns="http://www.w3.org/2000/svg">
       <defs>
         <!-- Background Gradient -->
         <linearGradient id="bgGrad" x1="0%" y1="0%" x2="100%" y2="100%">
@@ -135,22 +133,20 @@ function generateMaxPricesSVG(data, brandingText, customOptions = {}) {
       </style>
 
       <!-- 1. Background -->
-      <rect width="1080" height="1080" fill="url(#bgGrad)" />
+      <rect width="1080" height="1350" fill="url(#bgGrad)" />
       
       <!-- Ambient Glowing Orbs -->
-      <circle cx="200" cy="300" r="450" fill="url(#orbGreen)" />
-      <circle cx="900" cy="800" r="450" fill="url(#orbViolet)" />
+      <circle cx="200" cy="350" r="500" fill="url(#orbGreen)" />
+      <circle cx="900" cy="1000" r="500" fill="url(#orbViolet)" />
 
       <!-- 2. Header Section -->
-
-      <!-- 2. Header Section -->
-      <g transform="translate(100, 110)">
+      <g transform="translate(100, 140)">
         <text class="title-sub" x="0" y="0">MAKSYMALNE CENY PALIW</text>
         <text class="title-main" x="0" y="65">NA POLSKICH STACJACH</text>
       </g>
 
       <!-- 3. Date Panel (Glassmorphism Capsule) -->
-      <g transform="translate(100, 240)">
+      <g transform="translate(100, 300)">
         <!-- Capsule Card background -->
         <rect width="880" height="110" rx="24" fill="#ffffff" fill-opacity="0.04" stroke="#ffffff" stroke-opacity="0.08" stroke-width="1.5" />
         
@@ -167,7 +163,7 @@ function generateMaxPricesSVG(data, brandingText, customOptions = {}) {
       <!-- We have 3 items: Pb95, Pb98, ON -->
       
       <!-- CARD 1: Pb95 -->
-      <g transform="translate(100, 380)">
+      <g transform="translate(100, 460)">
         <!-- Card glass background -->
         <rect width="880" height="160" rx="28" fill="#ffffff" fill-opacity="0.03" stroke="#ffffff" stroke-opacity="0.06" stroke-width="1.5" />
         
@@ -189,13 +185,13 @@ function generateMaxPricesSVG(data, brandingText, customOptions = {}) {
         <g transform="translate(520, 0)">
           <text class="comparison-label" x="0" y="55">poprzednio: ${pb95[0]} zł</text>
           <text class="diff-val" fill="${diff95.color}" x="0" y="105">
-            <tspan class="diff-arrow">${diff95.arrow}</tspan> ${diff95.text}
+            ${diff95.sign ? `<tspan class="diff-sign" dy="-2">${diff95.sign}</tspan><tspan dy="2">${diff95.value}</tspan>` : `${diff95.value}`}
           </text>
         </g>
       </g>
 
       <!-- CARD 2: Pb98 -->
-      <g transform="translate(100, 565)">
+      <g transform="translate(100, 650)">
         <rect width="880" height="160" rx="28" fill="#ffffff" fill-opacity="0.03" stroke="#ffffff" stroke-opacity="0.06" stroke-width="1.5" />
         
         <rect x="30" y="30" width="100" height="100" rx="20" fill="url(#badge98)" />
@@ -213,13 +209,13 @@ function generateMaxPricesSVG(data, brandingText, customOptions = {}) {
         <g transform="translate(520, 0)">
           <text class="comparison-label" x="0" y="55">poprzednio: ${pb98[0]} zł</text>
           <text class="diff-val" fill="${diff98.color}" x="0" y="105">
-            <tspan class="diff-arrow">${diff98.arrow}</tspan> ${diff98.text}
+            ${diff98.sign ? `<tspan class="diff-sign" dy="-2">${diff98.sign}</tspan><tspan dy="2">${diff98.value}</tspan>` : `${diff98.value}`}
           </text>
         </g>
       </g>
 
       <!-- CARD 3: ON (Diesel) -->
-      <g transform="translate(100, 750)">
+      <g transform="translate(100, 840)">
         <rect width="880" height="160" rx="28" fill="#ffffff" fill-opacity="0.03" stroke="#ffffff" stroke-opacity="0.06" stroke-width="1.5" />
         
         <rect x="30" y="30" width="100" height="100" rx="20" fill="url(#badgeON)" />
@@ -237,13 +233,13 @@ function generateMaxPricesSVG(data, brandingText, customOptions = {}) {
         <g transform="translate(520, 0)">
           <text class="comparison-label" x="0" y="55">poprzednio: ${on[0]} zł</text>
           <text class="diff-val" fill="${diffON.color}" x="0" y="105">
-            <tspan class="diff-arrow">${diffON.arrow}</tspan> ${diffON.text}
+            ${diffON.sign ? `<tspan class="diff-sign" dy="-2">${diffON.sign}</tspan><tspan dy="2">${diffON.value}</tspan>` : `${diffON.value}`}
           </text>
         </g>
       </g>
 
       <!-- 5. Footer Section -->
-      <g transform="translate(100, 995)">
+      <g transform="translate(100, 1220)">
         <text class="footer-txt" x="0" y="0">Źródło: e-petrol.pl</text>
         ${footerBranding}
       </g>
@@ -272,7 +268,7 @@ function generateForecastsSVG(data, brandingText, customOptions = {}) {
 
 
   return `
-    <svg width="1080" height="1080" viewBox="0 0 1080 1080" xmlns="http://www.w3.org/2000/svg">
+    <svg width="1080" height="1350" viewBox="0 0 1080 1350" xmlns="http://www.w3.org/2000/svg">
       <defs>
         <linearGradient id="bgGrad" x1="0%" y1="0%" x2="100%" y2="100%">
           <stop offset="0%" stop-color="${bgGrad1}" />
@@ -327,20 +323,20 @@ function generateForecastsSVG(data, brandingText, customOptions = {}) {
       </style>
 
       <!-- 1. Background -->
-      <rect width="1080" height="1080" fill="url(#bgGrad)" />
+      <rect width="1080" height="1350" fill="url(#bgGrad)" />
       
       <!-- Glowing Orbs -->
-      <circle cx="200" cy="800" r="450" fill="url(#orbGold)" />
-      <circle cx="900" cy="300" r="450" fill="url(#orbViolet)" />
+      <circle cx="200" cy="1000" r="500" fill="url(#orbGold)" />
+      <circle cx="900" cy="350" r="500" fill="url(#orbViolet)" />
 
       <!-- 2. Header Section -->
-      <g transform="translate(100, 110)">
+      <g transform="translate(100, 140)">
         <text class="title-sub" x="0" y="0">PROGNOZY CEN PALIW</text>
         <text class="title-main" x="0" y="65">NA NADCHODZĄCY TYDZIEŃ</text>
       </g>
 
       <!-- 3. Period Panel -->
-      <g transform="translate(100, 240)">
+      <g transform="translate(100, 300)">
         <rect width="880" height="110" rx="24" fill="#ffffff" fill-opacity="0.04" stroke="#ffffff" stroke-opacity="0.08" stroke-width="1.5" />
         <text class="date-label" x="40" y="45">Prognoza na okres:</text>
         <text class="date-val" x="40" y="85">${period}</text>
@@ -352,7 +348,7 @@ function generateForecastsSVG(data, brandingText, customOptions = {}) {
       <!-- 4. Fuel Cards - 4 items in a 2x2 Grid (160px Height, matching Max Prices!) -->
       <!-- Row 1: Pb95 & Pb98 -->
       <!-- Pb95 -->
-      <g transform="translate(100, 380)">
+      <g transform="translate(100, 480)">
         <rect width="420" height="160" rx="28" fill="#ffffff" fill-opacity="0.03" stroke="#ffffff" stroke-opacity="0.06" stroke-width="1.5" />
         
         <rect x="30" y="30" width="100" height="100" rx="20" fill="url(#badge95)" />
@@ -367,7 +363,7 @@ function generateForecastsSVG(data, brandingText, customOptions = {}) {
       </g>
 
       <!-- Pb98 -->
-      <g transform="translate(560, 380)">
+      <g transform="translate(560, 480)">
         <rect width="420" height="160" rx="28" fill="#ffffff" fill-opacity="0.03" stroke="#ffffff" stroke-opacity="0.06" stroke-width="1.5" />
         
         <rect x="30" y="30" width="100" height="100" rx="20" fill="url(#badge98)" />
@@ -383,7 +379,7 @@ function generateForecastsSVG(data, brandingText, customOptions = {}) {
 
       <!-- Row 2: ON & LPG -->
       <!-- ON -->
-      <g transform="translate(100, 565)">
+      <g transform="translate(100, 700)">
         <rect width="420" height="160" rx="28" fill="#ffffff" fill-opacity="0.03" stroke="#ffffff" stroke-opacity="0.06" stroke-width="1.5" />
         
         <rect x="30" y="30" width="100" height="100" rx="20" fill="url(#badgeON)" />
@@ -398,7 +394,7 @@ function generateForecastsSVG(data, brandingText, customOptions = {}) {
       </g>
 
       <!-- LPG -->
-      <g transform="translate(560, 565)">
+      <g transform="translate(560, 700)">
         <rect width="420" height="160" rx="28" fill="#ffffff" fill-opacity="0.03" stroke="#ffffff" stroke-opacity="0.06" stroke-width="1.5" />
         
         <rect x="30" y="30" width="100" height="100" rx="20" fill="url(#badgeLPG)" />
@@ -413,7 +409,7 @@ function generateForecastsSVG(data, brandingText, customOptions = {}) {
       </g>
 
       <!-- 5. Footer Section -->
-      <g transform="translate(100, 995)">
+      <g transform="translate(100, 1220)">
         <text class="footer-txt" x="0" y="0">Źródło: e-petrol.pl</text>
         ${footerBranding}
       </g>

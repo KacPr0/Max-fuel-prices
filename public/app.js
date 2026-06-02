@@ -451,7 +451,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
    // Helper to trigger a manual post scrape-and-publish action on server.
   async function triggerManualPost(type = 'maxPrices') {
-    const btn = type === 'forecasts' ? btnTriggerForecast : btnManualTrigger;
+    const btn = type === 'combined' || type === 'forecasts' ? btnTriggerForecast : btnManualTrigger;
     const initialText = btn.innerHTML;
     
     try {
@@ -498,7 +498,7 @@ document.addEventListener('DOMContentLoaded', () => {
   }
 
   btnManualTrigger.addEventListener('click', () => triggerManualPost('maxPrices'));
-  btnTriggerForecast.addEventListener('click', () => triggerManualPost('forecasts'));
+  btnTriggerForecast.addEventListener('click', () => triggerManualPost('combined'));
 
   // ==============================================================================
   // INITIAL RUN

@@ -13,14 +13,14 @@ web_modules/
 # Lokalne archiwum postów z trybu symulacji
 history/
 
-# Pliki tymczasowe, pobrane strony i obrazy testowe w głównym katalogu
+# Pliki tymczasowe, pobrane strony i obrazy testowe
 epetrol.html
 test_max_prices.png
 test_forecasts.png
+public/test_*.png
+testMeta.js
+testX.js
 *.log
-
-# Ale chcemy śledzić oficjalny log aktywności bota!
-!bot_activity.log
 
 # Logi błędów NPM
 npm-debug.log*

@@ -578,7 +578,7 @@ h1, h2, h3, h4, .brand-text h1, .price-item .val {
 
 .image-preview-container {
   width: 100%;
-  aspect-ratio: 1 / 1;
+  aspect-ratio: 4 / 5;
   background-color: rgba(0, 0, 0, 0.25);
   border: 1px dashed var(--glass-border);
   border-radius: 18px;

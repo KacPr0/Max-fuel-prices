@@ -8,7 +8,7 @@ const { publishPost } = require('./publisher');
 const dbPath = path.join(__dirname, 'db.json');
 const logPath = path.join(__dirname, 'bot_activity.log');
 
- // Helper to write a timestamped log to bot_activity.log.
+// Helper to write a timestamped log to bot_activity.log.
 function logActivity(message) {
   const timestamp = new Date().toLocaleString('pl-PL');
   const formattedMsg = `[${timestamp}] ${message}\n`;
@@ -16,7 +16,7 @@ function logActivity(message) {
   fs.appendFileSync(logPath, formattedMsg);
 }
 
- // Loads the local database. Creates one if missing.
+// Loads the local database. Creates one if missing.
 function loadDatabase() {
   if (!fs.existsSync(dbPath)) {
     const initialDb = {
@@ -30,13 +30,13 @@ function loadDatabase() {
   return JSON.parse(fs.readFileSync(dbPath, 'utf8'));
 }
 
- // Saves the local database.
+// Saves the local database.
 function saveDatabase(db) {
   fs.writeFileSync(dbPath, JSON.stringify(db, null, 2));
 }
 
- // The main bot execution check.
- // Can be run manually or by the cron scheduler.
+// The main bot execution check.
+// Can be run manually or by the cron scheduler.
 async function checkAndPublish(options = {}) {
   const db = loadDatabase();
   const brandingText = process.env.BRANDING_TEXT || '@MaksymalneCenyPaliw';
@@ -55,12 +55,73 @@ async function checkAndPublish(options = {}) {
   const { maxPrices, forecasts } = scrapeResult;
   let postedMaxPrices = false;
   let postedForecasts = false;
+  let postedCombined = false;
 
+  const today = new Date();
+  // 5 represents Friday in JS
+  const isFriday = today.getDay() === 5 || options.forceCombined;
+
+  // Friday Special Case: Combined Carousel Post (Max Prices + Forecasts in one post!)
+  if (isFriday && maxPrices && forecasts && maxPrices.dates.length >= 2) {
+    const tomorrowDate = maxPrices.dates[1];
+    const period = forecasts.period;
+
+    const isNewMax = tomorrowDate !== db.lastPublishedMaxPriceDate;
+    const isNewFore = period !== db.lastPublishedForecastPeriod;
+
+    if (isNewMax || isNewFore || options.force) {
+      logActivity(`[NOWE DANE - PIĄTEK] Wykryto dzień piątkowy. Tworzenie postu karuzelowego (Ceny Max + Prognoza)...`);
+      
+      try {
+        logActivity(`[BOT] Generowanie grafiki 1/2: ceny maksymalne...`);
+        const pngMax = await generateFuelCard('maxPrices', maxPrices, brandingText);
+        
+        logActivity(`[BOT] Generowanie grafiki 2/2: prognozy tygodniowe...`);
+        const pngForecast = await generateFuelCard('forecasts', forecasts, brandingText);
+
+        logActivity(`[BOT] Rozpoczynam publikację połączonej karuzeli na Facebooku, Instagramie i Twitterze/X...`);
+        const publishResult = await publishPost('combined', { maxPrices, forecasts }, [pngMax, pngForecast], logActivity);
+
+        if (publishResult.success) {
+          db.lastPublishedMaxPriceDate = tomorrowDate;
+          db.lastPublishedForecastPeriod = period;
+          saveDatabase(db);
+          logActivity(`[SUKCES] Pomyślnie opublikowano piątkową karuzelę (Ceny Max na dzień ${tomorrowDate} oraz Prognozy na okres ${period}).`);
+          postedCombined = true;
+          postedMaxPrices = true;
+          postedForecasts = true;
+        } else {
+          logActivity(`[BŁĄD] Publikacja karuzeli piątkowej nie powiodła się.`);
+        }
+      } catch (err) {
+        logActivity(`[WYJĄTEK] Błąd podczas przetwarzania karuzeli piątkowej: ${err.message}`);
+      }
+
+      return {
+        success: true,
+        scrapedAt: scrapeResult.scrapedAt,
+        postedMaxPrices,
+        postedForecasts,
+        postedCombined
+      };
+    } else {
+      logActivity(`[INFO] Piątkowa karuzela (ceny maksymalne na ${tomorrowDate} oraz prognoza ${period}) została już wcześniej opublikowana.`);
+      return {
+        success: true,
+        scrapedAt: scrapeResult.scrapedAt,
+        postedMaxPrices: false,
+        postedForecasts: false,
+        postedCombined: false,
+        info: 'Piątkowa karuzela została już opublikowana.'
+      };
+    }
+  }
+
+  // Standard Cases: Monday - Thursday, Saturday - Sunday (Independent posts)
   // 1. Process Daily Maximum Prices
   if (maxPrices && maxPrices.dates.length >= 2) {
     const tomorrowDate = maxPrices.dates[1];
     
-    // Check if tomorrow's date is newer than the last published date
     if (tomorrowDate !== db.lastPublishedMaxPriceDate || options.force) {
       logActivity(`[NOWE DANE] Wykryto nowe ceny maksymalne na dzień: ${tomorrowDate}!`);
       
@@ -87,11 +148,12 @@ async function checkAndPublish(options = {}) {
     }
   }
 
-  // 2. Process Weekly Forecasts (Usually released on Fridays)
-  if (forecasts && forecasts.period) {
+  // 2. Process Weekly Forecasts (Standalone) - Only if explicitly forced and NOT Friday.
+  // Standard scheduled flows only publish weekly forecasts in the combined Friday carousel.
+  if (options.forceForecast && forecasts && forecasts.period) {
     const period = forecasts.period;
     
-    if (period !== db.lastPublishedForecastPeriod || options.forceForecast) {
+    if (period !== db.lastPublishedForecastPeriod || options.force) {
       logActivity(`[NOWE DANE] Wykryto nową prognozę tygodniową na okres: ${period}!`);
       
       try {
@@ -121,18 +183,15 @@ async function checkAndPublish(options = {}) {
     success: true,
     scrapedAt: scrapeResult.scrapedAt,
     postedMaxPrices,
-    postedForecasts
+    postedForecasts,
+    postedCombined
   };
 }
 
- // Initializes the automated cron schedule.
- // Polls the website every 15 minutes between 9:00 AM and 3:59 PM (9-15 hours) daily.
+// Initializes the automated cron schedule.
 function initScheduler() {
   logActivity('[SYSTEM] Inicjalizacja harmonogramu bota...');
   
-  // Cron expression: '*/15 9-15 * * *' 
-  // Runs every 15 minutes, starting at 9:00 AM and ending at 3:45 PM, every single day.
-  // This covers the exact time window when new data is typically published by e-petrol.pl.
   const task = cron.schedule('*/15 9-15 * * *', async () => {
     logActivity('[SYSTEM] Uruchomienie automatycznego sprawdzania (Cron)...');
     await checkAndPublish();

@@ -115,14 +115,16 @@ app.get('/api/logs', (req, res) => {
 
  // POST /api/trigger
  // Manually trigger scraping and publishing.
- // Optional body: { force: true, forceForecast: true }
+ // Optional body: { force: true, forceForecast: true, type: 'combined'|'maxPrices'|'forecasts' }
 app.post('/api/trigger', async (req, res) => {
   try {
     const { force, forceForecast, type } = req.body;
     logActivity(`[MANUAL] Ręczne wyzwolenie publikacji przez Panel Administracyjny.`);
     
     let result;
-    if (type === 'forecasts') {
+    if (type === 'combined') {
+      result = await checkAndPublish({ forceCombined: true, force: true });
+    } else if (type === 'forecasts') {
       result = await checkAndPublish({ forceForecast: true });
     } else {
       result = await checkAndPublish({ force: force !== false });
