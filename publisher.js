@@ -390,6 +390,9 @@ async function publishPost(type, data, pngBuffer, addLogCallback = console.log) 
         const creationId = containerJson.id;
         addLogCallback(`[Instagram] Krok 2/3: Sukces! ID kontenera: ${creationId}`);
 
+        addLogCallback(`[Instagram] Oczekiwanie na przetworzenie kontenera przez Meta (30 sek)...`);
+        await new Promise(resolve => setTimeout(resolve, 30000));
+
         addLogCallback(`[Instagram] Krok 3/3: Publikowanie kontenera na profilu...`);
         const publishRes = await fetch(
           `https://graph.facebook.com/v19.0/${igId}/media_publish?creation_id=${creationId}&access_token=${accessToken}`,
