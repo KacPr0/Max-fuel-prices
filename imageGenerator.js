@@ -315,8 +315,8 @@ function generateForecastsSVG(data, brandingText, customOptions = {}) {
         
         .fuel-badge-txt { font-family: 'Outfit', sans-serif; font-weight: 800; font-size: 46px; fill: #ffffff; text-anchor: middle; }
         .fuel-name { font-family: 'Inter', sans-serif; font-weight: 700; font-size: 22px; fill: #94a3b8; }
-        .price-val { font-family: 'Outfit', sans-serif; font-weight: 800; font-size: 44px; fill: #ffffff; }
-        .price-unit { font-family: 'Inter', sans-serif; font-weight: 600; font-size: 20px; fill: #64748b; }
+        .price-val { font-family: 'Outfit', sans-serif; font-weight: 800; font-size: 42px; fill: #ffffff; }
+        .price-unit { font-family: 'Inter', sans-serif; font-weight: 600; font-size: 24px; fill: #64748b; }
         
         .footer-txt { font-family: 'Inter', sans-serif; font-weight: 600; font-size: 24px; fill: #5b21b6; letter-spacing: 1px; }
         .footer-branding { font-family: 'Outfit', sans-serif; font-weight: 800; font-size: 28px; fill: #c084fc; letter-spacing: 1.5px; }
@@ -349,29 +349,29 @@ function generateForecastsSVG(data, brandingText, customOptions = {}) {
       <!-- Row 1: Pb95 & Pb98 -->
       <!-- Pb95 -->
       <g transform="translate(100, 480)">
-        <rect width="420" height="160" rx="28" fill="#ffffff" fill-opacity="0.03" stroke="#ffffff" stroke-opacity="0.06" stroke-width="1.5" />
+        <rect width="430" height="160" rx="28" fill="#ffffff" fill-opacity="0.03" stroke="#ffffff" stroke-opacity="0.06" stroke-width="1.5" />
         
         <rect x="30" y="30" width="100" height="100" rx="20" fill="url(#badge95)" />
         <text class="fuel-badge-txt" x="80" y="94">95</text>
         
-        <text class="fuel-name" x="150" y="66">Pb95</text>
+        <text class="fuel-name" x="145" y="66">Pb95</text>
 
-        <text x="150" y="124" text-anchor="start">
+        <text x="145" y="124" text-anchor="start">
           <tspan class="price-val">${pb95}</tspan>
           <tspan class="price-unit" dx="5">zł/l</tspan>
         </text>
       </g>
 
       <!-- Pb98 -->
-      <g transform="translate(560, 480)">
-        <rect width="420" height="160" rx="28" fill="#ffffff" fill-opacity="0.03" stroke="#ffffff" stroke-opacity="0.06" stroke-width="1.5" />
+      <g transform="translate(550, 480)">
+        <rect width="430" height="160" rx="28" fill="#ffffff" fill-opacity="0.03" stroke="#ffffff" stroke-opacity="0.06" stroke-width="1.5" />
         
         <rect x="30" y="30" width="100" height="100" rx="20" fill="url(#badge98)" />
         <text class="fuel-badge-txt" x="80" y="94">98</text>
         
-        <text class="fuel-name" x="150" y="66">Pb98</text>
+        <text class="fuel-name" x="145" y="66">Pb98</text>
 
-        <text x="150" y="124" text-anchor="start">
+        <text x="145" y="124" text-anchor="start">
           <tspan class="price-val">${pb98}</tspan>
           <tspan class="price-unit" dx="5">zł/l</tspan>
         </text>
@@ -380,29 +380,29 @@ function generateForecastsSVG(data, brandingText, customOptions = {}) {
       <!-- Row 2: ON & LPG -->
       <!-- ON -->
       <g transform="translate(100, 700)">
-        <rect width="420" height="160" rx="28" fill="#ffffff" fill-opacity="0.03" stroke="#ffffff" stroke-opacity="0.06" stroke-width="1.5" />
+        <rect width="430" height="160" rx="28" fill="#ffffff" fill-opacity="0.03" stroke="#ffffff" stroke-opacity="0.06" stroke-width="1.5" />
         
         <rect x="30" y="30" width="100" height="100" rx="20" fill="url(#badgeON)" />
         <text class="fuel-badge-txt" x="80" y="94">ON</text>
         
-        <text class="fuel-name" x="150" y="66">Diesel</text>
+        <text class="fuel-name" x="145" y="66">Diesel</text>
 
-        <text x="150" y="124" text-anchor="start">
+        <text x="145" y="124" text-anchor="start">
           <tspan class="price-val">${on}</tspan>
           <tspan class="price-unit" dx="5">zł/l</tspan>
         </text>
       </g>
 
       <!-- LPG -->
-      <g transform="translate(560, 700)">
-        <rect width="420" height="160" rx="28" fill="#ffffff" fill-opacity="0.03" stroke="#ffffff" stroke-opacity="0.06" stroke-width="1.5" />
+      <g transform="translate(550, 700)">
+        <rect width="430" height="160" rx="28" fill="#ffffff" fill-opacity="0.03" stroke="#ffffff" stroke-opacity="0.06" stroke-width="1.5" />
         
         <rect x="30" y="30" width="100" height="100" rx="20" fill="url(#badgeLPG)" />
         <text class="fuel-badge-txt" style="font-size: 30px;" x="80" y="90">LPG</text>
         
-        <text class="fuel-name" x="150" y="66">Autogaz</text>
+        <text class="fuel-name" x="145" y="66">Autogaz</text>
 
-        <text x="150" y="124" text-anchor="start">
+        <text x="145" y="124" text-anchor="start">
           <tspan class="price-val">${lpg}</tspan>
           <tspan class="price-unit" dx="5">zł/l</tspan>
         </text>
