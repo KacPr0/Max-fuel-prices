@@ -138,13 +138,16 @@ function generateCaption(type, data, platform = 'meta') {
            `⚫️ Diesel (ON): ${on} zł/l\n` +
            `🟠 Autogaz (LPG): ${lpg} zł/l\n\n` +
            `#prognoza #cenypaliw #paliwo #benzyna #diesel #lpg #autogaz #kierowcy #samochody #polska #epetrol`;
+  } else if (type === 'custom') {
+    const textToUse = data.caption && data.caption.trim() ? data.caption : data.text;
+    return `${textToUse}\n\n#cenypaliw #polska`;
   }
   return '';
 }
 
 // Public posts publisher.
 // Supports mock mode, single-image posts, and multi-image carousel posts.
-async function publishPost(type, data, pngBuffer, addLogCallback = console.log) {
+async function publishPost(type, data, pngBuffer, addLogCallback = console.log, platforms = ['facebook', 'instagram', 'twitter']) {
   const isMock = process.env.MOCK_MODE !== 'false';
   const isCarousel = Array.isArray(pngBuffer);
   
@@ -196,7 +199,7 @@ async function publishPost(type, data, pngBuffer, addLogCallback = console.log) 
   };
 
   // 1. Twitter (X) Publishing
-  if (process.env.X_API_KEY && process.env.X_API_ACCESS_TOKEN) {
+  if (platforms.includes('twitter') && process.env.X_API_KEY && process.env.X_API_ACCESS_TOKEN) {
     try {
       addLogCallback(`[X/Twitter] Rozpoczynam publikację na Twitter/X...`);
       const client = new TwitterApi({
@@ -241,11 +244,11 @@ async function publishPost(type, data, pngBuffer, addLogCallback = console.log) 
       results.twitter.error = err.message;
     }
   } else {
-    addLogCallback(`[X/Twitter] Pominięto (Brak skonfigurowanych kluczy API dla Twitter/X).`);
+    addLogCallback(`[X/Twitter] Pominięto (Brak skonfigurowanych kluczy API dla Twitter/X lub platforma niezaznaczona).`);
   }
 
   // 2. Facebook Publishing
-  if (process.env.META_PAGE_ACCESS_TOKEN && process.env.META_PAGE_ID) {
+  if (platforms.includes('facebook') && process.env.META_PAGE_ACCESS_TOKEN && process.env.META_PAGE_ID) {
     try {
       addLogCallback(`[Facebook] Rozpoczynam publikację na Facebook Page...`);
       const pageId = process.env.META_PAGE_ID;
@@ -314,11 +317,11 @@ async function publishPost(type, data, pngBuffer, addLogCallback = console.log) 
       results.facebook.error = err.message;
     }
   } else {
-    addLogCallback(`[Facebook] Pominięto (Brak skonfigurowanych kluczy API dla Facebooka).`);
+    addLogCallback(`[Facebook] Pominięto (Brak skonfigurowanych kluczy API dla Facebooka lub platforma niezaznaczona).`);
   }
 
   // 3. Instagram Publishing
-  if (process.env.META_PAGE_ACCESS_TOKEN && process.env.META_INSTAGRAM_BUSINESS_ID) {
+  if (platforms.includes('instagram') && process.env.META_PAGE_ACCESS_TOKEN && process.env.META_INSTAGRAM_BUSINESS_ID) {
     try {
       addLogCallback(`[Instagram] Rozpoczynam publikację na Instagramie...`);
       const igId = process.env.META_INSTAGRAM_BUSINESS_ID;
@@ -413,7 +416,7 @@ async function publishPost(type, data, pngBuffer, addLogCallback = console.log) 
       results.instagram.error = err.message;
     }
   } else {
-    addLogCallback(`[Instagram] Pominięto (Brak skonfigurowanych kluczy API / ID dla Instagrama).`);
+    addLogCallback(`[Instagram] Pominięto (Brak skonfigurowanych kluczy API / ID dla Instagrama lub platforma niezaznaczona).`);
   }
 
   return {

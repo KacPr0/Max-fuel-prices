@@ -42,7 +42,17 @@ app.get('/api/status', (req, res) => {
     hasTwitterKeys: !!(process.env.X_API_KEY && process.env.X_API_ACCESS_TOKEN),
     hasMetaKeys: !!(process.env.META_PAGE_ACCESS_TOKEN && process.env.META_PAGE_ID),
     hasIgKeys: !!(process.env.META_PAGE_ACCESS_TOKEN && process.env.META_INSTAGRAM_BUSINESS_ID),
-    hasImgbbKey: !!process.env.IMGBB_API_KEY
+    hasImgbbKey: !!process.env.IMGBB_API_KEY,
+    keys: {
+      X_API_KEY: process.env.X_API_KEY || '',
+      X_API_KEY_SECRET: process.env.X_API_KEY_SECRET || '',
+      X_API_ACCESS_TOKEN: process.env.X_API_ACCESS_TOKEN || '',
+      X_API_ACCESS_TOKEN_SECRET: process.env.X_API_ACCESS_TOKEN_SECRET || '',
+      META_PAGE_ACCESS_TOKEN: process.env.META_PAGE_ACCESS_TOKEN || '',
+      META_PAGE_ID: process.env.META_PAGE_ID || '',
+      META_INSTAGRAM_BUSINESS_ID: process.env.META_INSTAGRAM_BUSINESS_ID || '',
+      IMGBB_API_KEY: process.env.IMGBB_API_KEY || ''
+    }
   };
 
   res.json({
@@ -76,22 +86,42 @@ app.get('/api/preview/:type', async (req, res) => {
     const bg1 = req.query.bg1;
     const bg2 = req.query.bg2;
     const customOptions = {};
+    const titleMain = req.query.titleMain;
+    const titleSub = req.query.titleSub;
+    const footerTxt = req.query.footerTxt;
+    const fontSize = req.query.fontSize;
+
     if (bg1) customOptions.bgGrad1 = bg1;
     if (bg2) customOptions.bgGrad2 = bg2;
+    if (titleMain) customOptions.titleMain = titleMain;
+    if (titleSub) customOptions.titleSub = titleSub;
+    if (footerTxt) customOptions.footerTxt = footerTxt;
+    if (fontSize) customOptions.fontSize = parseInt(fontSize);
 
-    let pngBuffer;
+    const raw = req.query.raw === 'true';
+    if (raw) customOptions.rawSvg = true;
+
+    let result;
     if (type === 'maxPrices') {
       if (!data.maxPrices) return res.status(404).json({ error: 'Brak danych o cenach maksymalnych.' });
-      pngBuffer = await generateFuelCard('maxPrices', data.maxPrices, branding, customOptions);
+      result = await generateFuelCard('maxPrices', data.maxPrices, branding, customOptions);
     } else if (type === 'forecasts') {
       if (!data.forecasts) return res.status(404).json({ error: 'Brak danych o prognozach.' });
-      pngBuffer = await generateFuelCard('forecasts', data.forecasts, branding, customOptions);
+      result = await generateFuelCard('forecasts', data.forecasts, branding, customOptions);
+    } else if (type === 'custom') {
+      const text = req.query.text || 'Twoje ogłoszenie...';
+      result = await generateFuelCard('custom', { text }, branding, customOptions);
     } else {
       return res.status(400).json({ error: 'Nieprawidłowy typ podglądu.' });
     }
 
-    res.set('Content-Type', 'image/png');
-    res.send(pngBuffer);
+    if (raw) {
+      res.set('Content-Type', 'image/svg+xml');
+      res.send(result);
+    } else {
+      res.set('Content-Type', 'image/png');
+      res.send(result);
+    }
   } catch (error) {
     console.error('Błąd podglądu grafiki:', error);
     res.status(500).json({ error: error.message });
@@ -115,19 +145,21 @@ app.get('/api/logs', (req, res) => {
 
  // POST /api/trigger
  // Manually trigger scraping and publishing.
- // Optional body: { force: true, forceForecast: true, type: 'combined'|'maxPrices'|'forecasts' }
+ // Optional body: { force: true, forceForecast: true, type: 'combined'|'maxPrices'|'forecasts'|'custom', platforms: [], customText: '' }
 app.post('/api/trigger', async (req, res) => {
   try {
-    const { force, forceForecast, type } = req.body;
+    const { force, forceForecast, type, platforms, customText, customCaption, titleMain, titleSub, footerTxt, fontSize } = req.body;
     logActivity(`[MANUAL] Ręczne wyzwolenie publikacji przez Panel Administracyjny.`);
     
     let result;
     if (type === 'combined') {
-      result = await checkAndPublish({ forceCombined: true, force: true });
+      result = await checkAndPublish({ forceCombined: true, force: true, platforms });
     } else if (type === 'forecasts') {
-      result = await checkAndPublish({ forceForecast: true });
+      result = await checkAndPublish({ forceForecast: true, platforms });
+    } else if (type === 'custom') {
+      result = await checkAndPublish({ type: 'custom', customText, customCaption, platforms, titleMain, titleSub, footerTxt, fontSize: parseInt(fontSize) });
     } else {
-      result = await checkAndPublish({ force: force !== false });
+      result = await checkAndPublish({ force: force !== false, platforms });
     }
     
     res.json(result);
@@ -150,6 +182,12 @@ app.post('/api/settings', (req, res) => {
       currentEnv = fs.readFileSync(envPath, 'utf8');
     }
 
+    // Helper to safely get value, fallback to existing env
+    const getValue = (key) => {
+      if (settings[key] && settings[key].trim() !== '') return settings[key];
+      return process.env[key] || '';
+    };
+
     // Build new .env contents
     const lines = [];
     lines.push(`PORT=${settings.PORT || process.env.PORT || 3000}`);
@@ -157,18 +195,18 @@ app.post('/api/settings', (req, res) => {
     lines.push(`BRANDING_TEXT=${settings.BRANDING_TEXT || '@MaksymalneCenyPaliw'}`);
     lines.push('');
     lines.push(`# API KEYS (Twitter/X)`);
-    lines.push(`X_API_KEY=${settings.X_API_KEY || ''}`);
-    lines.push(`X_API_KEY_SECRET=${settings.X_API_KEY_SECRET || ''}`);
-    lines.push(`X_API_ACCESS_TOKEN=${settings.X_API_ACCESS_TOKEN || ''}`);
-    lines.push(`X_API_ACCESS_TOKEN_SECRET=${settings.X_API_ACCESS_TOKEN_SECRET || ''}`);
+    lines.push(`X_API_KEY=${getValue('X_API_KEY')}`);
+    lines.push(`X_API_KEY_SECRET=${getValue('X_API_KEY_SECRET')}`);
+    lines.push(`X_API_ACCESS_TOKEN=${getValue('X_API_ACCESS_TOKEN')}`);
+    lines.push(`X_API_ACCESS_TOKEN_SECRET=${getValue('X_API_ACCESS_TOKEN_SECRET')}`);
     lines.push('');
     lines.push(`# API KEYS (Meta FB/IG)`);
-    lines.push(`META_PAGE_ACCESS_TOKEN=${settings.META_PAGE_ACCESS_TOKEN || ''}`);
-    lines.push(`META_PAGE_ID=${settings.META_PAGE_ID || ''}`);
-    lines.push(`META_INSTAGRAM_BUSINESS_ID=${settings.META_INSTAGRAM_BUSINESS_ID || ''}`);
+    lines.push(`META_PAGE_ACCESS_TOKEN=${getValue('META_PAGE_ACCESS_TOKEN')}`);
+    lines.push(`META_PAGE_ID=${getValue('META_PAGE_ID')}`);
+    lines.push(`META_INSTAGRAM_BUSINESS_ID=${getValue('META_INSTAGRAM_BUSINESS_ID')}`);
     lines.push('');
     lines.push(`# Cloud Image Host for Instagram (ImgBB)`);
-    lines.push(`IMGBB_API_KEY=${settings.IMGBB_API_KEY || ''}`);
+    lines.push(`IMGBB_API_KEY=${getValue('IMGBB_API_KEY')}`);
 
     fs.writeFileSync(envPath, lines.join('\n'));
     

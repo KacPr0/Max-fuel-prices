@@ -417,12 +417,130 @@ function generateForecastsSVG(data, brandingText, customOptions = {}) {
   `;
 }
 
+// Splits text into lines for SVG
+function splitTextIntoLines(text, maxLineLength = 40) {
+  // Support manual newlines first
+  const inputLines = text.split('\n');
+  const resultLines = [];
+  
+  for (const inputLine of inputLines) {
+    if (!inputLine.trim()) {
+      resultLines.push('');
+      continue;
+    }
+    const words = inputLine.split(' ');
+    let currentLine = '';
+
+    for (const word of words) {
+      if ((currentLine + word).length > maxLineLength) {
+        if (currentLine) {
+          resultLines.push(currentLine.trim());
+        }
+        currentLine = word + ' ';
+      } else {
+        currentLine += word + ' ';
+      }
+    }
+    if (currentLine) {
+      resultLines.push(currentLine.trim());
+    }
+  }
+  return resultLines;
+}
+
+ // Generates a SVG string for Custom Posts
+function generateCustomSVG(data, brandingText, customOptions = {}) {
+  const text = data.text || 'Wiadomość systemowa...';
+  const fontSize = customOptions.fontSize || 46;
+  const maxLineLength = Math.floor(1650 / fontSize);
+  const lines = splitTextIntoLines(text, maxLineLength);
+
+  const titleMain = customOptions.titleMain || 'OGŁOSZENIE';
+  const titleSub = customOptions.titleSub || 'WAŻNA INFORMACJA';
+  const footerTxt = customOptions.footerTxt || 'Informacja Bota';
+
+  const bgGrad1 = customOptions.bgGrad1 || '#111827'; // Darker gray-blue
+  const bgGrad2 = customOptions.bgGrad2 || '#030712'; // Almost black
+
+  const logoBase64 = getLogoBase64();
+  const footerBranding = logoBase64 
+    ? `<text class="footer-branding" x="818" y="0" text-anchor="end">${brandingText}</text>
+       <image href="${logoBase64}" x="834" y="-32" width="48" height="48" />`
+    : `<text class="footer-branding" x="880" y="0" text-anchor="end">${brandingText}</text>`;
+
+  const lineSpacing = fontSize * 1.3;
+  const paddingY = 40;
+  const textBlockHeight = (lines.length - 1) * lineSpacing + fontSize;
+  const rectHeight = Math.max(200, textBlockHeight + paddingY * 2);
+  const rectY = 650 - (rectHeight / 2);
+  const startY = 650 - ((lines.length - 1) * lineSpacing) / 2 + (fontSize * 0.3);
+  
+  let textSVG = '';
+  lines.forEach((line, index) => {
+    textSVG += `<text class="custom-val" x="440" y="${startY + index * lineSpacing}">${line}</text>\n`;
+  });
+
+  return `
+    <svg width="1080" height="1350" viewBox="0 0 1080 1350" xmlns="http://www.w3.org/2000/svg">
+      <defs>
+        <linearGradient id="bgGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+          <stop offset="0%" stop-color="${bgGrad1}" />
+          <stop offset="100%" stop-color="${bgGrad2}" />
+        </linearGradient>
+        
+        <radialGradient id="orbGold" cx="20%" cy="80%" r="70%">
+          <stop offset="0%" stop-color="#3b82f6" stop-opacity="0.2" />
+          <stop offset="100%" stop-color="#3b82f6" stop-opacity="0" />
+        </radialGradient>
+        
+        <radialGradient id="orbViolet" cx="80%" cy="30%" r="60%">
+          <stop offset="0%" stop-color="#10b981" stop-opacity="0.2" />
+          <stop offset="100%" stop-color="#10b981" stop-opacity="0" />
+        </radialGradient>
+      </defs>
+
+      <style>
+        @import url('https://fonts.googleapis.com/css2?family=Outfit:wght@400;600;800&amp;family=Inter:wght@400;600;700&amp;display=swap');
+        .title-main { font-family: 'Outfit', sans-serif; font-weight: 800; font-size: 56px; fill: #ffffff; letter-spacing: 2px; }
+        .title-sub { font-family: 'Inter', sans-serif; font-weight: 600; font-size: 26px; fill: #38bdf8; letter-spacing: 3px; }
+        
+        .custom-val { font-family: 'Inter', sans-serif; font-weight: 500; font-size: ${fontSize}px; fill: #f8fafc; text-anchor: middle; line-height: 1.5; }
+        
+        .footer-txt { font-family: 'Inter', sans-serif; font-weight: 600; font-size: 24px; fill: #94a3b8; letter-spacing: 1px; }
+        .footer-branding { font-family: 'Outfit', sans-serif; font-weight: 800; font-size: 28px; fill: #38bdf8; letter-spacing: 1.5px; }
+      </style>
+
+      <rect width="1080" height="1350" fill="url(#bgGrad)" />
+      
+      <circle cx="200" cy="1000" r="500" fill="url(#orbGold)" />
+      <circle cx="900" cy="350" r="500" fill="url(#orbViolet)" />
+
+      <g transform="translate(100, 140)">
+        <text class="title-sub" x="0" y="0">${titleSub}</text>
+        <text class="title-main" x="0" y="65">${titleMain}</text>
+      </g>
+
+      <g transform="translate(100, 0)">
+        <rect x="0" y="${rectY}" width="880" height="${rectHeight}" rx="28" fill="#ffffff" fill-opacity="0.03" stroke="#ffffff" stroke-opacity="0.06" stroke-width="1.5" />
+        <g>
+          ${textSVG}
+        </g>
+      </g>
+
+      <g transform="translate(100, 1220)">
+        <text class="footer-txt" x="0" y="0">${footerTxt}</text>
+        ${footerBranding}
+      </g>
+    </svg>
+  `;
+}
+
  // Main function to generate the PNG card buffer from scraped data.
  // @param {'maxPrices' | 'forecasts'} type
  // @param {any} data Scraped data object
  // @param {string} brandingText User branding (e.g. "@CenyPaliwBot")
  // @param {any} customOptions Custom styling parameters
- // @returns {Promise<Buffer>} PNG image buffer
+ // @returns {Promise<Buffer|string>} PNG image buffer or raw SVG
 async function generateFuelCard(type, data, brandingText = '@MaksymalneCenyPaliw', customOptions = {}) {
   try {
     let svgString = '';
@@ -431,8 +549,14 @@ async function generateFuelCard(type, data, brandingText = '@MaksymalneCenyPaliw
       svgString = generateMaxPricesSVG(data, brandingText, customOptions);
     } else if (type === 'forecasts') {
       svgString = generateForecastsSVG(data, brandingText, customOptions);
+    } else if (type === 'custom') {
+      svgString = generateCustomSVG(data, brandingText, customOptions);
     } else {
       throw new Error(`Nieznany typ grafiki: ${type}`);
+    }
+
+    if (customOptions.rawSvg) {
+      return svgString;
     }
 
     // Convert SVG string to PNG buffer using sharp
@@ -450,5 +574,6 @@ async function generateFuelCard(type, data, brandingText = '@MaksymalneCenyPaliw
 module.exports = {
   generateFuelCard,
   generateMaxPricesSVG,
-  generateForecastsSVG
+  generateForecastsSVG,
+  generateCustomSVG
 };

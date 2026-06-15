@@ -9,6 +9,7 @@ web_modules/
 .env.production
 .env.development
 .env.staging
+keys.txt
 
 # Lokalne archiwum postów z trybu symulacji
 history/

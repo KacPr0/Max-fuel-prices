@@ -40,6 +40,33 @@ async function checkAndPublish(options = {}) {
   const db = loadDatabase();
   const brandingText = process.env.BRANDING_TEXT || '@MaksymalneCenyPaliw';
   
+  if (options.type === 'custom') {
+    logActivity(`[NOWE DANE - WŁASNE] Wykryto ręczny post typu custom.`);
+    try {
+      logActivity(`[BOT] Generowanie grafiki dla posta customowego...`);
+      const customOptions = {
+        titleMain: options.titleMain,
+        titleSub: options.titleSub,
+        footerTxt: options.footerTxt,
+        fontSize: options.fontSize
+      };
+      const pngBuffer = await generateFuelCard('custom', { text: options.customText }, brandingText, customOptions);
+      logActivity(`[BOT] Rozpoczynam publikację customowego posta...`);
+      const publishResult = await publishPost('custom', { text: options.customText, caption: options.customCaption }, pngBuffer, logActivity, options.platforms);
+      
+      if (publishResult.success) {
+        logActivity(`[SUKCES] Pomyślnie opublikowano własny post.`);
+        return { success: true, postedCustom: true };
+      } else {
+        logActivity(`[BŁĄD] Publikacja własnego posta nie powiodła się.`);
+        return { success: false, error: 'Błąd publikacji' };
+      }
+    } catch (err) {
+      logActivity(`[WYJĄTEK] Błąd podczas przetwarzania custom posta: ${err.message}`);
+      return { success: false, error: err.message };
+    }
+  }
+
   logActivity('[BOT] Sprawdzanie strony e-petrol.pl pod kątem nowych danych...');
   const scrapeResult = await scrapeFuelPrices();
 
@@ -75,8 +102,8 @@ async function checkAndPublish(options = {}) {
         logActivity(`[BOT] Generowanie grafiki 2/2: prognozy tygodniowe...`);
         const pngForecast = await generateFuelCard('forecasts', forecasts, brandingText);
 
-        logActivity(`[BOT] Rozpoczynam publikację połączonej karuzeli na Facebooku, Instagramie i Twitterze/X...`);
-        const publishResult = await publishPost('combined', { maxPrices, forecasts }, [pngMax, pngForecast], logActivity);
+        logActivity(`[BOT] Rozpoczynam publikację połączonej karuzeli na wybranych platformach...`);
+        const publishResult = await publishPost('combined', { maxPrices, forecasts }, [pngMax, pngForecast], logActivity, options.platforms);
 
         if (publishResult.success) {
           db.lastPublishedMaxPriceDate = tomorrowDate;
@@ -126,7 +153,7 @@ async function checkAndPublish(options = {}) {
         const pngBuffer = await generateFuelCard('maxPrices', maxPrices, brandingText);
         
         logActivity(`[BOT] Rozpoczynam publikację cen maksymalnych...`);
-        const publishResult = await publishPost('maxPrices', maxPrices, pngBuffer, logActivity);
+        const publishResult = await publishPost('maxPrices', maxPrices, pngBuffer, logActivity, options.platforms);
         
         if (publishResult.success) {
           db.lastPublishedMaxPriceDate = tomorrowDate;
@@ -157,7 +184,7 @@ async function checkAndPublish(options = {}) {
         const pngBuffer = await generateFuelCard('forecasts', forecasts, brandingText);
         
         logActivity(`[BOT] Rozpoczynam publikację prognoz...`);
-        const publishResult = await publishPost('forecasts', forecasts, pngBuffer, logActivity);
+        const publishResult = await publishPost('forecasts', forecasts, pngBuffer, logActivity, options.platforms);
         
         if (publishResult.success) {
           db.lastPublishedForecastPeriod = period;

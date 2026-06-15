@@ -63,9 +63,26 @@ document.addEventListener('DOMContentLoaded', () => {
   const consoleOutput = document.getElementById('console-output');
   const btnClearConsole = document.getElementById('btn-clear-console');
 
-  // DOM Elements - Manual triggers
-  const btnManualTrigger = document.getElementById('btn-manual-trigger');
-  const btnTriggerForecast = document.getElementById('btn-trigger-forecast');
+  // DOM Elements - Posting Form
+  const formPosting = document.getElementById('form-posting');
+  const postPlatFacebook = document.getElementById('post-plat-facebook');
+  const postPlatInstagram = document.getElementById('post-plat-instagram');
+  const postPlatTwitter = document.getElementById('post-plat-twitter');
+  const postTypeRadios = document.querySelectorAll('input[name="postType"]');
+  const customTextContainer = document.getElementById('custom-text-container');
+  const postCustomText = document.getElementById('post-custom-text');
+  const postCustomCaption = document.getElementById('post-custom-caption');
+  const postCustomFontSize = document.getElementById('post-custom-font-size');
+  const fontSizeVal = document.getElementById('font-size-val');
+  const postCustomTitleMain = document.getElementById('post-custom-title-main');
+  const postCustomTitleSub = document.getElementById('post-custom-title-sub');
+  const postCustomFooter = document.getElementById('post-custom-footer');
+  const postingStatus = document.getElementById('posting-status');
+  const btnSubmitPost = document.getElementById('btn-submit-post');
+  
+  const postingPreviewPanel = document.getElementById('posting-preview-panel');
+  const imagePostingPreview = document.getElementById('image-posting-preview');
+  const postingPreviewLoader = document.getElementById('posting-preview-loader');
 
   // Global variables
   let currentBranding = '@MaksymalneCenyPaliw';
@@ -77,6 +94,10 @@ document.addEventListener('DOMContentLoaded', () => {
     dashboard: {
       title: 'Pulpit sterowniczy',
       desc: 'Podgląd aktualnych cen, harmonogramu i statusu bota.'
+    },
+    posting: {
+      title: 'Ręczne Publikowanie',
+      desc: 'Wysyłaj posty z poziomu panelu na wybrane platformy.'
     },
     customizer: {
       title: 'Personalizacja grafiki',
@@ -164,6 +185,17 @@ document.addEventListener('DOMContentLoaded', () => {
       currentBranding = data.config.brandingText;
       inputBranding.value = currentBranding;
 
+      if (data.config.keys) {
+        if (!inputXKey.value) inputXKey.value = data.config.keys.X_API_KEY;
+        if (!inputXSecret.value) inputXSecret.value = data.config.keys.X_API_KEY_SECRET;
+        if (!inputXToken.value) inputXToken.value = data.config.keys.X_API_ACCESS_TOKEN;
+        if (!inputXTokenSecret.value) inputXTokenSecret.value = data.config.keys.X_API_ACCESS_TOKEN_SECRET;
+        if (!inputMetaToken.value) inputMetaToken.value = data.config.keys.META_PAGE_ACCESS_TOKEN;
+        if (!inputMetaPageId.value) inputMetaPageId.value = data.config.keys.META_PAGE_ID;
+        if (!inputMetaIgId.value) inputMetaIgId.value = data.config.keys.META_INSTAGRAM_BUSINESS_ID;
+        if (!inputImgbbKey.value) inputImgbbKey.value = data.config.keys.IMGBB_API_KEY;
+      }
+
     } catch (error) {
       console.error('Błąd pobierania statusu bota:', error);
       sidebarStatus.className = 'bot-status-capsule offline';
@@ -215,8 +247,8 @@ document.addEventListener('DOMContentLoaded', () => {
    // Refreshes the main dashboard visual preview.
   function updateMainPreview() {
     previewLoader.classList.add('active');
-    // Set src with parameters to trigger backend Sharp PNG rendering
-    const url = `/api/preview/${activePreviewType}?branding=${encodeURIComponent(currentBranding)}&bg1=${encodeURIComponent(currentBg1)}&bg2=${encodeURIComponent(currentBg2)}&t=${Date.now()}`;
+    // Set src with parameters to trigger backend SVG rendering directly
+    const url = `/api/preview/${activePreviewType}?branding=${encodeURIComponent(currentBranding)}&bg1=${encodeURIComponent(currentBg1)}&bg2=${encodeURIComponent(currentBg2)}&raw=true&t=${Date.now()}`;
     
     imageCardPreview.onload = () => {
       previewLoader.classList.remove('active');
@@ -248,12 +280,14 @@ document.addEventListener('DOMContentLoaded', () => {
 
    // Updates the Customizer dynamic preview card image.
   function updateCustomizerPreview() {
-    const branding = inputBranding.value;
-    const bg1 = colorBg1.value;
-    const bg2 = colorBg2.value;
-
-    const url = `/api/preview/${activeCustType}?branding=${encodeURIComponent(branding)}&bg1=${encodeURIComponent(bg1)}&bg2=${encodeURIComponent(bg2)}&t=${Date.now()}`;
+    imageCustomPreview.style.opacity = '0.5';
+    // Use raw=true for instant SVG rendering without sharp processing overhead
+    const url = `/api/preview/${activeCustType}?branding=${encodeURIComponent(inputBranding.value)}&bg1=${encodeURIComponent(colorBg1.value)}&bg2=${encodeURIComponent(colorBg2.value)}&raw=true&t=${Date.now()}`;
+    
     imageCustomPreview.src = url;
+    imageCustomPreview.onload = () => {
+      imageCustomPreview.style.opacity = '1';
+    };
   }
 
   // Handle color pickers changes
@@ -446,59 +480,163 @@ document.addEventListener('DOMContentLoaded', () => {
   }, 3000); // Poll logs every 3 seconds ONLY if active tab is Console
 
   // ==============================================================================
-  // MANUAL POST TRIGGERS
+  // MANUAL POSTING LOGIC
   // ==============================================================================
 
-   // Helper to trigger a manual post scrape-and-publish action on server.
-  async function triggerManualPost(type = 'maxPrices') {
-    const btn = type === 'combined' || type === 'forecasts' ? btnTriggerForecast : btnManualTrigger;
-    const initialText = btn.innerHTML;
+  // Handle post type change to show/hide custom text area
+  postTypeRadios.forEach(radio => {
+    radio.addEventListener('change', (e) => {
+      if (e.target.value === 'custom') {
+        customTextContainer.style.display = 'block';
+        postingPreviewPanel.style.display = 'block';
+        updatePostingPreview();
+      } else {
+        customTextContainer.style.display = 'none';
+        postingPreviewPanel.style.display = 'none';
+      }
+    });
+  });
+
+  // Handle font size display update
+  postCustomFontSize.addEventListener('input', (e) => {
+    fontSizeVal.textContent = e.target.value;
+    updatePostingPreview();
+  });
+
+  let postingPreviewTimeout;
+  function updatePostingPreview() {
+    clearTimeout(postingPreviewTimeout);
+    postingPreviewLoader.style.display = 'flex';
+    imagePostingPreview.style.opacity = '0.5';
+
+    postingPreviewTimeout = setTimeout(() => {
+      const text = encodeURIComponent(postCustomText.value || 'Treść ogłoszenia...');
+      const fontSize = postCustomFontSize.value;
+      const titleMain = encodeURIComponent(postCustomTitleMain.value || 'OGŁOSZENIE');
+      const titleSub = encodeURIComponent(postCustomTitleSub.value || 'WAŻNA INFORMACJA');
+      const footerTxt = encodeURIComponent(postCustomFooter.value || 'Informacja Bota');
+
+      // Force cache bust
+      const timestamp = new Date().getTime();
+      const previewUrl = `/api/preview/custom?text=${text}&fontSize=${fontSize}&titleMain=${titleMain}&titleSub=${titleSub}&footerTxt=${footerTxt}&raw=true&t=${timestamp}`;
+      
+      imagePostingPreview.src = previewUrl;
+      imagePostingPreview.onload = () => {
+        postingPreviewLoader.style.display = 'none';
+        imagePostingPreview.style.opacity = '1';
+      };
+    }, 50); // 50ms fast debounce
+  }
+
+  [postCustomText, postCustomTitleMain, postCustomTitleSub, postCustomFooter].forEach(input => {
+    input.addEventListener('input', updatePostingPreview);
+  });
+
+  function getSelectedPostType() {
+    for (const radio of postTypeRadios) {
+      if (radio.checked) return radio.value;
+    }
+    return 'custom';
+  }
+
+  // Handle manual post submission
+  formPosting.addEventListener('submit', async (e) => {
+    e.preventDefault();
+    postingStatus.className = 'status-msg';
     
+    // Collect selected platforms
+    const platforms = [];
+    if (postPlatFacebook.checked) platforms.push('facebook');
+    if (postPlatInstagram.checked) platforms.push('instagram');
+    if (postPlatTwitter.checked) platforms.push('twitter');
+
+    if (platforms.length === 0) {
+      postingStatus.classList.add('error');
+      postingStatus.textContent = 'Wybierz przynajmniej jedną platformę do publikacji!';
+      return;
+    }
+
+    const type = getSelectedPostType();
+    const customText = postCustomText.value;
+    const customCaption = postCustomCaption.value;
+    const fontSize = postCustomFontSize.value;
+    const titleMain = postCustomTitleMain.value;
+    const titleSub = postCustomTitleSub.value;
+    const footerTxt = postCustomFooter.value;
+
+    if (type === 'custom' && !customText.trim()) {
+      postingStatus.classList.add('error');
+      postingStatus.textContent = 'Wpisz treść ogłoszenia!';
+      return;
+    }
+
     try {
-      btn.disabled = true;
-      btn.innerHTML = `<div class="spinner" style="width: 16px; height: 16px; border-width: 2px; display: inline-block; vertical-align: middle; margin-right: 8px;"></div> Publikowanie...`;
+      const initialText = btnSubmitPost.innerHTML;
+      btnSubmitPost.disabled = true;
+      btnSubmitPost.innerHTML = `<div class="spinner" style="width: 16px; height: 16px; border-width: 2px; display: inline-block; vertical-align: middle; margin-right: 8px;"></div> Wysyłanie...`;
+      postingStatus.textContent = 'Trwa publikacja, to może potrwać dłuższą chwilę...';
 
       const res = await fetch('/api/trigger', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ force: true, forceForecast: type === 'forecasts', type })
+        body: JSON.stringify({ 
+          force: true, 
+          forceForecast: type === 'forecasts',
+          type: type,
+          platforms: platforms,
+          customText: customText,
+          customCaption: customCaption,
+          fontSize: fontSize,
+          titleMain: titleMain,
+          titleSub: titleSub,
+          footerTxt: footerTxt
+        })
       });
 
-      if (!res.ok) throw new Error('Nie udało się wyzwolić publikacji.');
+      if (!res.ok) {
+        const errorData = await res.json();
+        throw new Error(errorData.error || 'Nie udało się wyzwolić publikacji.');
+      }
       const data = await res.json();
 
-      btn.innerHTML = `<i data-lucide="check-circle" style="vertical-align: middle;"></i> Gotowe!`;
-      btn.style.backgroundColor = 'var(--accent-success)';
+      postingStatus.classList.add('success');
+      postingStatus.textContent = 'Sukces! Post został przekazany do publikacji.';
+      
+      btnSubmitPost.innerHTML = `<i data-lucide="check-circle" style="vertical-align: middle;"></i> Gotowe!`;
+      btnSubmitPost.style.backgroundColor = 'var(--accent-success)';
       lucide.createIcons();
 
       setTimeout(() => {
-        btn.disabled = false;
-        btn.innerHTML = initialText;
-        btn.style.backgroundColor = '';
+        btnSubmitPost.disabled = false;
+        btnSubmitPost.innerHTML = initialText;
+        btnSubmitPost.style.backgroundColor = '';
+        postingStatus.textContent = '';
+        postingStatus.className = 'status-msg';
         lucide.createIcons();
-      }, 3000);
+      }, 5000);
 
-      // Refresh data
+      // Refresh background stats
       fetchStatus();
       fetchPrices();
       fetchLogs();
     } catch (err) {
       console.error(err);
-      btn.innerHTML = `<i data-lucide="alert-triangle"></i> Błąd!`;
-      btn.style.backgroundColor = 'var(--accent-danger)';
+      postingStatus.classList.add('error');
+      postingStatus.textContent = `Błąd: ${err.message}`;
+      
+      const initialText = btnSubmitPost.innerHTML;
+      btnSubmitPost.innerHTML = `<i data-lucide="alert-triangle"></i> Błąd!`;
+      btnSubmitPost.style.backgroundColor = 'var(--accent-danger)';
       lucide.createIcons();
 
       setTimeout(() => {
-        btn.disabled = false;
-        btn.innerHTML = initialText;
-        btn.style.backgroundColor = '';
+        btnSubmitPost.disabled = false;
+        btnSubmitPost.innerHTML = '<i data-lucide="send"></i> Wyślij Post Teraz';
+        btnSubmitPost.style.backgroundColor = '';
         lucide.createIcons();
-      }, 3000);
+      }, 4000);
     }
-  }
-
-  btnManualTrigger.addEventListener('click', () => triggerManualPost('maxPrices'));
-  btnTriggerForecast.addEventListener('click', () => triggerManualPost('combined'));
+  });
 
   // ==============================================================================
   // INITIAL RUN

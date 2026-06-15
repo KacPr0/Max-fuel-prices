@@ -30,6 +30,9 @@
         <button class="nav-btn active" data-tab="dashboard">
           <i data-lucide="layout-dashboard"></i> Pulpit sterowniczy
         </button>
+        <button class="nav-btn" data-tab="posting">
+          <i data-lucide="send"></i> Publikowanie
+        </button>
         <button class="nav-btn" data-tab="customizer">
           <i data-lucide="palette"></i> Wygląd grafiki
         </button>
@@ -57,12 +60,7 @@
           <p id="current-tab-desc">Podgląd aktualnych cen, harmonogramu i statusu bota.</p>
         </div>
         <div class="header-actions">
-          <button class="btn btn-primary btn-glow" id="btn-manual-trigger">
-            <i data-lucide="send"></i> Opublikuj Teraz (Max Ceny)
-          </button>
-          <button class="btn btn-secondary" id="btn-trigger-forecast">
-            <i data-lucide="layers"></i> Opublikuj Karuzelę (Ceny + Prognoza)
-          </button>
+          <!-- Action buttons removed, posting is handled in the new tab -->
         </div>
       </header>
 
@@ -212,6 +210,133 @@
                   <button class="btn btn-secondary btn-sm" id="btn-refresh-preview">
                     <i data-lucide="refresh-cw"></i> Odśwież podgląd
                   </button>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- TAB: POSTING -->
+      <section class="tab-content" id="tab-posting">
+        <div class="customizer-grid">
+          <!-- Form Column -->
+          <div class="customizer-settings glass-panel">
+            <h3>Ręczne publikowanie</h3>
+            <p class="description">Wybierz na jakie platformy chcesz wysłać post oraz jakiego rodzaju ma to być treść.</p>
+            
+            <form id="form-posting" class="spacer-top">
+              <!-- Platform selection -->
+              <div class="settings-section">
+                <h4>Wybierz Platformy</h4>
+                <div class="form-row">
+                  <div class="form-group checkbox-group col-third">
+                    <label class="switch-container">
+                      <input type="checkbox" id="post-plat-facebook" value="facebook" checked />
+                      <span class="slider"></span>
+                    </label>
+                    <span class="switch-title" style="margin-left: 10px;">Facebook</span>
+                  </div>
+                  <div class="form-group checkbox-group col-third">
+                    <label class="switch-container">
+                      <input type="checkbox" id="post-plat-instagram" value="instagram" checked />
+                      <span class="slider"></span>
+                    </label>
+                    <span class="switch-title" style="margin-left: 10px;">Instagram</span>
+                  </div>
+                  <div class="form-group checkbox-group col-third">
+                    <label class="switch-container">
+                      <input type="checkbox" id="post-plat-twitter" value="twitter" checked />
+                      <span class="slider"></span>
+                    </label>
+                    <span class="switch-title" style="margin-left: 10px;">Twitter / X</span>
+                  </div>
+                </div>
+              </div>
+
+              <!-- Post Type Selection -->
+              <div class="settings-section spacer-top">
+                <h4>Wybierz Typ Posta</h4>
+                  <div class="post-type-selector">
+                    <label class="post-type-option">
+                      <input type="radio" name="postType" value="maxPrices" />
+                      <div class="option-content">
+                        <i data-lucide="trending-up"></i>
+                        <span>Ceny Maksymalne</span>
+                      </div>
+                    </label>
+                    <label class="post-type-option">
+                      <input type="radio" name="postType" value="combined" />
+                      <div class="option-content">
+                        <i data-lucide="copy"></i>
+                        <span>Karuzela (Piątek)</span>
+                      </div>
+                    </label>
+                    <label class="post-type-option">
+                      <input type="radio" name="postType" value="custom" checked />
+                      <div class="option-content">
+                        <i data-lucide="message-square"></i>
+                        <span>Własny post</span>
+                      </div>
+                    </label>
+                  </div>
+              </div>
+
+              <!-- Custom text input -->
+              <div class="settings-section spacer-top" id="custom-text-container" style="display: none;">
+                <h4>Treść Własnego Posta</h4>
+                <p class="description">Wpisz tekst ogłoszenia. Zostanie on wygenerowany na grafice oraz użyty jako treść posta.</p>
+                <div class="form-group">
+                  <textarea id="post-custom-text" rows="5" placeholder="Treść ogłoszenia..." style="width: 100%; padding: 12px; border-radius: 8px; border: 1px solid rgba(255,255,255,0.1); background: rgba(0,0,0,0.2); color: white; resize: vertical;"></textarea>
+                </div>
+                
+                <div class="form-group spacer-top">
+                  <label for="post-custom-font-size">Wielkość czcionki tekstu grafiki (<span id="font-size-val">46</span>px)</label>
+                  <input type="range" id="post-custom-font-size" min="20" max="80" value="46" style="width: 100%;" />
+                </div>
+                
+                <div class="form-group spacer-top" style="border-top: 1px solid rgba(255,255,255,0.1); padding-top: 15px;">
+                  <label for="post-custom-caption">Opis posta (treść pod obrazkiem)</label>
+                  <textarea id="post-custom-caption" rows="3" placeholder="Wpisz opis, który pojawi się w poście na Facebooku, Instagramie i Twitterze (zamiast powielać treść z grafiki)..." style="width: 100%; padding: 12px; border-radius: 8px; border: 1px solid rgba(255,255,255,0.1); background: rgba(0,0,0,0.2); color: white; resize: vertical;"></textarea>
+                </div>
+                
+                <!-- Custom titles and footer inputs -->
+                <div class="form-group spacer-top">
+                  <label for="post-custom-title-sub">Podtytuł (np. WAŻNA INFORMACJA)</label>
+                  <input type="text" id="post-custom-title-sub" value="WAŻNA INFORMACJA" />
+                </div>
+                <div class="form-group spacer-top">
+                  <label for="post-custom-title-main">Tytuł główny (np. OGŁOSZENIE)</label>
+                  <input type="text" id="post-custom-title-main" value="OGŁOSZENIE" />
+                </div>
+                <div class="form-group spacer-top">
+                  <label for="post-custom-footer">Tekst w stopce (np. Informacja Bota)</label>
+                  <input type="text" id="post-custom-footer" value="Informacja Bota" />
+                </div>
+              </div>
+
+              <!-- Submit -->
+              <div class="settings-actions spacer-top">
+                <div id="posting-status" class="status-msg"></div>
+                <button type="submit" class="btn btn-primary btn-glow" id="btn-submit-post">
+                  <i data-lucide="send"></i> Wyślij Post Teraz
+                </button>
+              </div>
+            </form>
+          </div>
+
+          <!-- Preview Column -->
+          <div class="customizer-preview" id="posting-preview-panel" style="display: none;">
+            <div class="content-card glass-panel">
+              <div class="card-header">
+                <h3>Podgląd na żywo</h3>
+              </div>
+              <div class="card-body text-center">
+                <div class="image-preview-container">
+                  <img id="image-posting-preview" src="" alt="Podgląd ogłoszenia..." />
+                  <div class="preview-spinner" id="posting-preview-loader" style="display: none;">
+                    <div class="spinner"></div>
+                  </div>
                 </div>
               </div>
             </div>

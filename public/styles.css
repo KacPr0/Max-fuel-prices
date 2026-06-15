@@ -918,3 +918,54 @@ input:checked + .slider:before {
 ::-webkit-scrollbar-thumb:hover {
   background: var(--glass-hover-border);
 }
+
+/* Post Type Selector */
+.post-type-selector {
+  display: flex;
+  gap: 12px;
+  margin-top: 8px;
+}
+.post-type-option {
+  flex: 1;
+  position: relative;
+  cursor: pointer;
+}
+.post-type-option input[type="radio"] {
+  position: absolute;
+  opacity: 0;
+  width: 0;
+  height: 0;
+}
+.post-type-option .option-content {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 16px 12px;
+  background: var(--glass-bg);
+  border: 1px solid var(--glass-border);
+  border-radius: 12px;
+  transition: all 0.2s ease;
+  text-align: center;
+}
+.post-type-option .option-content span {
+  font-size: 14px;
+  font-weight: 500;
+  color: var(--text-muted);
+}
+.post-type-option .option-content svg {
+  color: var(--text-muted);
+}
+.post-type-option input[type="radio"]:checked + .option-content {
+  background: rgba(56, 189, 248, 0.1);
+  border-color: #38bdf8;
+  box-shadow: 0 0 16px rgba(56, 189, 248, 0.2);
+}
+.post-type-option input[type="radio"]:checked + .option-content span,
+.post-type-option input[type="radio"]:checked + .option-content svg {
+  color: #38bdf8;
+}
+.post-type-option:hover .option-content {
+  background: var(--glass-hover-bg);
+}
