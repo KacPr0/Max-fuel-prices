@@ -56,10 +56,10 @@ async function checkAndPublish(options = {}) {
       
       if (publishResult.success) {
         logActivity(`[SUKCES] Pomyślnie opublikowano własny post.`);
-        return { success: true, postedCustom: true };
+        return { success: true, postedCustom: true, publishResult };
       } else {
         logActivity(`[BŁĄD] Publikacja własnego posta nie powiodła się.`);
-        return { success: false, error: 'Błąd publikacji' };
+        return { success: false, error: 'Błąd publikacji', publishResult };
       }
     } catch (err) {
       logActivity(`[WYJĄTEK] Błąd podczas przetwarzania custom posta: ${err.message}`);

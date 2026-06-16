@@ -600,7 +600,15 @@ document.addEventListener('DOMContentLoaded', () => {
       const data = await res.json();
 
       postingStatus.classList.add('success');
-      postingStatus.textContent = 'Sukces! Post został przekazany do publikacji.';
+      let detailsText = '';
+      if (data.publishResult && data.publishResult.results) {
+        const r = data.publishResult.results;
+        detailsText = '<br><br><strong>Logi publikacji:</strong><br>';
+        if (r.facebook) detailsText += `Facebook: ${r.facebook.success ? '✅ Sukces' : '❌ Błąd: ' + (r.facebook.error || 'nieznany')}<br>`;
+        if (r.instagram) detailsText += `Instagram: ${r.instagram.success ? '✅ Sukces' : '❌ Błąd: ' + (r.instagram.error || 'nieznany')}<br>`;
+        if (r.twitter) detailsText += `X (Twitter): ${r.twitter.success ? '✅ Sukces' : '❌ Błąd: ' + (r.twitter.error || 'nieznany')}<br>`;
+      }
+      postingStatus.innerHTML = `Sukces! Post został przetworzony.${detailsText}`;
       
       btnSubmitPost.innerHTML = `<i data-lucide="check-circle" style="vertical-align: middle;"></i> Gotowe!`;
       btnSubmitPost.style.backgroundColor = 'var(--accent-success)';
@@ -610,10 +618,10 @@ document.addEventListener('DOMContentLoaded', () => {
         btnSubmitPost.disabled = false;
         btnSubmitPost.innerHTML = initialText;
         btnSubmitPost.style.backgroundColor = '';
-        postingStatus.textContent = '';
+        postingStatus.innerHTML = '';
         postingStatus.className = 'status-msg';
         lucide.createIcons();
-      }, 5000);
+      }, 10000);
 
       // Refresh background stats
       fetchStatus();
