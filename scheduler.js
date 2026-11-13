@@ -67,7 +67,7 @@ async function checkAndPublish(options = {}) {
     }
   }
 
-  logActivity('[BOT] Sprawdzanie strony e-petrol.pl pod kątem nowych danych...');
+  logActivity('[BOT] Sprawdzanie Monitora Polskiego (ceny max) i e-petrol.pl (prognozy) pod kątem nowych danych...');
   const scrapeResult = await scrapeFuelPrices();
 
   if (!scrapeResult.success) {

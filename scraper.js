@@ -1,12 +1,96 @@
 const cheerio = require('cheerio');
+const { extractPdfText } = require('./pdfText');
 
- // Scrapes e-petrol.pl homepage for maximum fuel prices and weekly forecasts.
- // @returns {Promise<{success: boolean, maxPrices?: any, forecasts?: any, error?: string}>}
+const MP_BASE = 'https://monitorpolski.gov.pl';
+const BROWSER_HEADERS = {
+  'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36',
+  'Accept-Language': 'pl-PL,pl;q=0.9,en-US;q=0.8,en;q=0.7'
+};
+
+function addDays(isoDate, days) {
+  const d = new Date(isoDate + 'T12:00:00Z');
+  d.setUTCDate(d.getUTCDate() + days);
+  return d.toISOString().slice(0, 10);
+}
+
+// Pobiera i parsuje jedno obwieszczenie Ministra Energii (PDF z Monitora Polskiego).
+async function fetchGovNotice(pdfPath) {
+  const res = await fetch(MP_BASE + pdfPath, { headers: BROWSER_HEADERS, redirect: 'follow' });
+  if (!res.ok) throw new Error(`Monitor Polski PDF: HTTP ${res.status}`);
+  const text = extractPdfText(Buffer.from(await res.arrayBuffer())).replace(/\s+/g, ' ');
+
+  const grab = (re, label) => {
+    const m = text.match(re);
+    if (!m) throw new Error(`Nie znaleziono ceny ${label} w obwieszczeniu ${pdfPath}`);
+    return m[1];
+  };
+  return {
+    pb95: grab(/bezołowiowej 95[\s\S]*?usług wynosi (\d+,\d{2})/, 'Pb95'),
+    pb98: grab(/bezołowiowej 98[\s\S]*?usług wynosi (\d+,\d{2})/, 'Pb98'),
+    on: grab(/oleju napędowego[\s\S]*?usług wynosi (\d+,\d{2})/, 'ON')
+  };
+}
+
+// Ceny maksymalne z oficjalnego źródła: obwieszczenia Ministra Energii w Monitorze Polskim.
+// Obwieszczenie ogłoszone danego dnia obowiązuje od dnia następnego.
+// Zwraca ten sam format co scraper e-petrol: dates/pb98/pb95/on = [poprzednie, najnowsze].
+async function scrapeGovMaxPrices() {
+  const year = new Date().getFullYear();
+  const res = await fetch(`${MP_BASE}/MP/rok/${year}`, { headers: BROWSER_HEADERS });
+  if (!res.ok) throw new Error(`Monitor Polski lista: HTTP ${res.status}`);
+  const $ = cheerio.load(await res.text());
+
+  const notices = [];
+  $('tr').each((i, row) => {
+    const rowText = $(row).text().replace(/\s+/g, ' ');
+    if (!/Obwieszczenie Ministra Energii.*maksymalnej ceny paliw/i.test(rowText)) return;
+    const pdf = $(row).find('a[href$=".pdf"]').attr('href');
+    const dates = rowText.match(/\d{4}-\d{2}-\d{2}/g);
+    const pos = parseInt(rowText.trim(), 10);
+    if (pdf && dates) notices.push({ pos, pdf, announced: dates[dates.length - 1] });
+  });
+  notices.sort((a, b) => b.pos - a.pos);
+  if (notices.length < 2) throw new Error('Nie znaleziono obwieszczeń o cenach maksymalnych w Monitorze Polskim.');
+
+  const [latest, previous] = notices;
+  const [cur, prev] = await Promise.all([fetchGovNotice(latest.pdf), fetchGovNotice(previous.pdf)]);
+  return {
+    dates: [addDays(previous.announced, 1), addDays(latest.announced, 1)],
+    pb98: [prev.pb98, cur.pb98],
+    pb95: [prev.pb95, cur.pb95],
+    on: [prev.on, cur.on],
+    source: `M.P. ${year} poz. ${latest.pos}`
+  };
+}
+
+// Główna funkcja: ceny maksymalne z Monitora Polskiego (państwowe źródło),
+// prognozy tygodniowe z e-petrol.pl (nie ma państwowego odpowiednika).
+// Jeśli Monitor Polski zawiedzie, ceny maksymalne biorą się awaryjnie z e-petrol.
 async function scrapeFuelPrices() {
+  const [gov, epetrol] = await Promise.allSettled([scrapeGovMaxPrices(), scrapeEPetrol()]);
+
+  if (gov.status === 'rejected') console.error('Błąd Monitora Polskiego:', gov.reason);
+  const ep = epetrol.status === 'fulfilled' ? epetrol.value : { success: false, error: epetrol.reason?.message };
+  if (!ep.success) console.error('Błąd e-petrol.pl (prognozy):', ep.error);
+
+  const maxPrices = gov.status === 'fulfilled' ? gov.value : (ep.maxPrices || null);
+  const forecasts = ep.forecasts || null;
+
+  if (!maxPrices && !forecasts) {
+    return {
+      success: false,
+      error: `Monitor Polski: ${gov.reason?.message}; e-petrol: ${ep.error}`
+    };
+  }
+  return { success: true, maxPrices, forecasts, scrapedAt: new Date().toISOString() };
+}
+
+// Scrapes e-petrol.pl homepage for maximum fuel prices and weekly forecasts.
+// @returns {Promise<{success: boolean, maxPrices?: any, forecasts?: any, error?: string}>}
+async function scrapeEPetrol() {
   try {
-    // Używamy darmowego serwera proxy (api.allorigins.win), bo corsproxy zostało odrzucone.
-    const url = 'https://api.allorigins.win/raw?url=' + encodeURIComponent('https://www.e-petrol.pl/');
-    const response = await fetch(url, {
+    // Uwaga: e-petrol stoi za Cloudflare i może blokować IP GitHub Actions.
+    const response = await fetch('https://www.e-petrol.pl/', {
       headers: {
         'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36',
         'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.7',
@@ -112,5 +196,7 @@ async function scrapeFuelPrices() {
 }
 
 module.exports = {
-  scrapeFuelPrices
+  scrapeFuelPrices,
+  scrapeGovMaxPrices,
+  scrapeEPetrol
 };
