@@ -240,7 +240,7 @@ function generateMaxPricesSVG(data, brandingText, customOptions = {}) {
 
       <!-- 5. Footer Section -->
       <g transform="translate(100, 1220)">
-        <text class="footer-txt" x="0" y="0">Źródło: e-petrol.pl</text>
+        <text class="footer-txt" x="0" y="0">Źródło: Monitor Polski</text>
         ${footerBranding}
       </g>
     </svg>
