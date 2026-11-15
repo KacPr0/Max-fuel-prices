@@ -99,11 +99,11 @@ function generateCaption(type, data, platform = 'meta') {
              `🟢 Pb98: ${pb98[1]} zł/l (${diff98})\n` +
              `⚫️ ON: ${on[1]} zł/l (${diffON})\n\n` +
              `Żadna stacja nie może sprzedawać drożej! ⚠️\n\n` +
-             `#cenypaliw #polska #epetrol`;
+             `#cenypaliw #polska`;
     } else if (type === 'forecasts') {
       const { period, pb95, pb98, on, lpg } = data;
 
-      return `PROGNOZA CEN PALIW (${period})n\n` +
+      return `PROGNOZA CEN PALIW (${period})\n\n` +
              `🟢 Pb95: ${pb95} zł/l\n` +
              `🟢 Pb98: ${pb98} zł/l\n` +
              `⚫️ ON: ${on} zł/l\n` +
@@ -127,7 +127,7 @@ function generateCaption(type, data, platform = 'meta') {
            `⚫️ Diesel (ON): ${on[1]} zł/l (${diffON})\n\n` +
            `⚠️ Są to ceny maksymalne ogłoszone na podstawie obwieszczenia Ministra Energii. Żadna stacja w Polsce nie może sprzedawać paliw powyżej tych stawek!\n\n` +
            `Śledź nas po codzienne aktualizacje cen!\n\n` +
-           `#cenypaliw #paliwo #benzyna #diesel #stacjabenzynowa #kierowcy #samochody #polska #epetrol`;
+           `#cenypaliw #paliwo #benzyna #diesel #stacjabenzynowa #kierowcy #samochody #polska`;
   } else if (type === 'forecasts') {
     const { period, pb95, pb98, on, lpg } = data;
 

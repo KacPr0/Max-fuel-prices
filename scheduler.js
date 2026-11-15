@@ -79,6 +79,7 @@ async function checkAndPublish(options = {}) {
   let postedMaxPrices = false;
   let postedForecasts = false;
   let postedCombined = false;
+  let publishFailed = false;
 
   const today = new Date();
   // 5 represents Friday in JS
@@ -115,9 +116,11 @@ async function checkAndPublish(options = {}) {
           postedForecasts = true;
         } else {
           logActivity(`[BŁĄD] Publikacja karuzeli piątkowej nie powiodła się.`);
+          publishFailed = true;
         }
       } catch (err) {
         logActivity(`[WYJĄTEK] Błąd podczas przetwarzania karuzeli piątkowej: ${err.message}`);
+        publishFailed = true;
       }
 
       return {
@@ -125,7 +128,8 @@ async function checkAndPublish(options = {}) {
         scrapedAt: scrapeResult.scrapedAt,
         postedMaxPrices,
         postedForecasts,
-        postedCombined
+        postedCombined,
+        publishFailed
       };
     } else {
       logActivity(`[INFO] Piątkowa karuzela (ceny maksymalne na ${tomorrowDate} oraz prognoza ${period}) została już wcześniej opublikowana.`);
@@ -162,9 +166,11 @@ async function checkAndPublish(options = {}) {
           postedMaxPrices = true;
         } else {
           logActivity(`[BŁĄD] Publikacja cen maksymalnych nie powiodła się.`);
+          publishFailed = true;
         }
       } catch (err) {
         logActivity(`[WYJĄTEK] Błąd podczas przetwarzania cen maksymalnych: ${err.message}`);
+        publishFailed = true;
       }
     } else {
       logActivity(`[INFO] Ceny maksymalne na dzień ${tomorrowDate} zostały już wcześniej opublikowane.`);
@@ -193,9 +199,11 @@ async function checkAndPublish(options = {}) {
           postedForecasts = true;
         } else {
           logActivity(`[BŁĄD] Publikacja prognozy nie powiodła się.`);
+          publishFailed = true;
         }
       } catch (err) {
         logActivity(`[WYJĄTEK] Błąd podczas przetwarzania prognozy: ${err.message}`);
+        publishFailed = true;
       }
     } else {
       logActivity(`[INFO] Prognoza na okres ${period} została już wcześniej opublikowana.`);
@@ -207,7 +215,8 @@ async function checkAndPublish(options = {}) {
     scrapedAt: scrapeResult.scrapedAt,
     postedMaxPrices,
     postedForecasts,
-    postedCombined
+    postedCombined,
+    publishFailed
   };
 }
 

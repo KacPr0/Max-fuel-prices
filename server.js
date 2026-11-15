@@ -64,7 +64,7 @@ app.get('/api/status', (req, res) => {
 });
 
  // GET /api/prices
- // Scrapes current prices from e-petrol.pl and returns them.
+ // Scrapes current prices (Monitor Polski + e-petrol.pl forecasts) and returns them.
 app.get('/api/prices', async (req, res) => {
   const data = await scrapeFuelPrices();
   res.json(data);
