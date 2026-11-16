@@ -1,5 +1,9 @@
 const cheerio = require('cheerio');
 const { extractPdfText } = require('./pdfText');
+// undici (instalowany razem z cheerio) pozwala wydłużyć czas nawiązywania połączenia:
+// wbudowany fetch w Node poddaje się po 10 s, a serwery rządowe bywają z chmury bardzo wolne.
+const { Agent, fetch: undiciFetch } = require('undici');
+const slowServerAgent = new Agent({ connect: { timeout: 30000 } });
 
 const MP_BASE = 'https://monitorpolski.gov.pl';
 const SEJM_API = 'https://api.sejm.gov.pl/eli/acts';
@@ -19,7 +23,7 @@ async function fetchWithRetry(url, options = {}, tries = 3) {
   let lastError;
   for (let i = 1; i <= tries; i++) {
     try {
-      const res = await fetch(url, { headers: BROWSER_HEADERS, redirect: 'follow', signal: AbortSignal.timeout(30000), ...options });
+      const res = await undiciFetch(url, { headers: BROWSER_HEADERS, redirect: 'follow', dispatcher: slowServerAgent, signal: AbortSignal.timeout(60000), ...options });
       if (res.ok || res.status < 500) return res;
       lastError = new Error(`HTTP ${res.status}`);
     } catch (err) {
@@ -93,7 +97,7 @@ async function scrapeGovMaxPrices() {
       if (notices.length < 2) throw new Error('za mało obwieszczeń na liście');
       const [latest, previous] = notices;
       const [cur, prev] = await Promise.all([fetchGovNotice(latest.pdfUrl), fetchGovNotice(previous.pdfUrl)]);
-      if (errors.length) console.warn(`Ceny maksymalne pobrane awaryjnie z: ${name}`);
+      if (errors.length) console.warn(`Ceny maksymalne pobrane awaryjnie z: ${name}. Wcześniejsze błędy: ${errors.join('; ')}`);
       return {
         dates: [addDays(previous.announced, 1), addDays(latest.announced, 1)],
         pb98: [prev.pb98, cur.pb98],
