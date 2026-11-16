@@ -76,6 +76,15 @@ async function checkAndPublish(options = {}) {
   }
 
   const { maxPrices, forecasts } = scrapeResult;
+  if (maxPrices && maxPrices.via) logActivity(`[BOT] Ceny maksymalne pobrane z: ${maxPrices.via} (${maxPrices.source}).`);
+
+  // Zabezpieczenie: nie publikujemy jako "na jutro" cen, które już obowiązują
+  // (np. gdy awaryjne źródło ma opóźnienie i nie ma jeszcze dzisiejszego obwieszczenia).
+  const todayWarsaw = new Date().toLocaleDateString('sv-SE', { timeZone: 'Europe/Warsaw' });
+  if (maxPrices && maxPrices.dates.length >= 2 && maxPrices.dates[1] <= todayWarsaw && !options.force) {
+    logActivity(`[INFO] Najnowsze ceny maksymalne (od ${maxPrices.dates[1]}) już obowiązują - czekam na nowe obwieszczenie.`);
+    return { success: true, scrapedAt: scrapeResult.scrapedAt, postedMaxPrices: false, postedForecasts: false, postedCombined: false, publishFailed: false, info: 'Brak nowego obwieszczenia.' };
+  }
   let postedMaxPrices = false;
   let postedForecasts = false;
   let postedCombined = false;

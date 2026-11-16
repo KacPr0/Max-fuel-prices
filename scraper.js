@@ -2,6 +2,7 @@ const cheerio = require('cheerio');
 const { extractPdfText } = require('./pdfText');
 
 const MP_BASE = 'https://monitorpolski.gov.pl';
+const SEJM_API = 'https://api.sejm.gov.pl/eli/acts';
 const BROWSER_HEADERS = {
   'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36',
   'Accept-Language': 'pl-PL,pl;q=0.9,en-US;q=0.8,en;q=0.7'
@@ -13,15 +14,31 @@ function addDays(isoDate, days) {
   return d.toISOString().slice(0, 10);
 }
 
-// Pobiera i parsuje jedno obwieszczenie Ministra Energii (PDF z Monitora Polskiego).
-async function fetchGovNotice(pdfPath) {
-  const res = await fetch(MP_BASE + pdfPath, { headers: BROWSER_HEADERS, redirect: 'follow' });
-  if (!res.ok) throw new Error(`Monitor Polski PDF: HTTP ${res.status}`);
+// fetch z ponowieniami: serwery rządowe bywają nieosiągalne z chmury (timeouty).
+async function fetchWithRetry(url, options = {}, tries = 3) {
+  let lastError;
+  for (let i = 1; i <= tries; i++) {
+    try {
+      const res = await fetch(url, { headers: BROWSER_HEADERS, redirect: 'follow', signal: AbortSignal.timeout(30000), ...options });
+      if (res.ok || res.status < 500) return res;
+      lastError = new Error(`HTTP ${res.status}`);
+    } catch (err) {
+      lastError = err.cause ? new Error(`${err.message} (${err.cause.code || err.cause.message})`) : err;
+    }
+    if (i < tries) await new Promise(r => setTimeout(r, 3000 * i));
+  }
+  throw lastError;
+}
+
+// Pobiera i parsuje jedno obwieszczenie Ministra Energii (PDF).
+async function fetchGovNotice(pdfUrl) {
+  const res = await fetchWithRetry(pdfUrl);
+  if (!res.ok) throw new Error(`PDF obwieszczenia: HTTP ${res.status}`);
   const text = extractPdfText(Buffer.from(await res.arrayBuffer())).replace(/\s+/g, ' ');
 
   const grab = (re, label) => {
     const m = text.match(re);
-    if (!m) throw new Error(`Nie znaleziono ceny ${label} w obwieszczeniu ${pdfPath}`);
+    if (!m) throw new Error(`Nie znaleziono ceny ${label} w obwieszczeniu ${pdfUrl}`);
     return m[1];
   };
   return {
@@ -31,15 +48,11 @@ async function fetchGovNotice(pdfPath) {
   };
 }
 
-// Ceny maksymalne z oficjalnego źródła: obwieszczenia Ministra Energii w Monitorze Polskim.
-// Obwieszczenie ogłoszone danego dnia obowiązuje od dnia następnego.
-// Zwraca ten sam format co scraper e-petrol: dates/pb98/pb95/on = [poprzednie, najnowsze].
-async function scrapeGovMaxPrices() {
-  const year = new Date().getFullYear();
-  const res = await fetch(`${MP_BASE}/MP/rok/${year}`, { headers: BROWSER_HEADERS });
-  if (!res.ok) throw new Error(`Monitor Polski lista: HTTP ${res.status}`);
+// Lista obwieszczeń ze strony Monitora Polskiego (publikacja tego samego dnia).
+async function listNoticesMonitorPolski(year) {
+  const res = await fetchWithRetry(`${MP_BASE}/MP/rok/${year}`);
+  if (!res.ok) throw new Error(`lista: HTTP ${res.status}`);
   const $ = cheerio.load(await res.text());
-
   const notices = [];
   $('tr').each((i, row) => {
     const rowText = $(row).text().replace(/\s+/g, ' ');
@@ -47,20 +60,53 @@ async function scrapeGovMaxPrices() {
     const pdf = $(row).find('a[href$=".pdf"]').attr('href');
     const dates = rowText.match(/\d{4}-\d{2}-\d{2}/g);
     const pos = parseInt(rowText.trim(), 10);
-    if (pdf && dates) notices.push({ pos, pdf, announced: dates[dates.length - 1] });
+    if (pdf && dates) notices.push({ pos, pdfUrl: MP_BASE + pdf, announced: dates[dates.length - 1] });
   });
-  notices.sort((a, b) => b.pos - a.pos);
-  if (notices.length < 2) throw new Error('Nie znaleziono obwieszczeń o cenach maksymalnych w Monitorze Polskim.');
+  return notices;
+}
 
-  const [latest, previous] = notices;
-  const [cur, prev] = await Promise.all([fetchGovNotice(latest.pdf), fetchGovNotice(previous.pdf)]);
-  return {
-    dates: [addDays(previous.announced, 1), addDays(latest.announced, 1)],
-    pb98: [prev.pb98, cur.pb98],
-    pb95: [prev.pb95, cur.pb95],
-    on: [prev.on, cur.on],
-    source: `M.P. ${year} poz. ${latest.pos}`
-  };
+// Lista obwieszczeń z API Sejmu (ELI) - te same akty, ale zwykle z ok. 1-dniowym opóźnieniem.
+async function listNoticesSejmApi(year) {
+  const url = `${SEJM_API}/search?publisher=MP&year=${year}&title=${encodeURIComponent('maksymalnej ceny paliw')}&limit=500`;
+  const res = await fetchWithRetry(url, { headers: { Accept: 'application/json' } });
+  if (!res.ok) throw new Error(`HTTP ${res.status}`);
+  const data = await res.json();
+  return (data.items || [])
+    .filter(a => /Ministra Energii/i.test(a.title) && a.textPDF)
+    .map(a => ({ pos: a.pos, pdfUrl: `${SEJM_API}/MP/${year}/${a.pos}/text.pdf`, announced: a.promulgation }));
+}
+
+// Ceny maksymalne z oficjalnego źródła: obwieszczenia Ministra Energii w Monitorze Polskim.
+// Obwieszczenie ogłoszone danego dnia obowiązuje od dnia następnego.
+// Zwraca ten sam format co scraper e-petrol: dates/pb98/pb95/on = [poprzednie, najnowsze].
+async function scrapeGovMaxPrices() {
+  const year = new Date().getFullYear();
+  const sources = [
+    ['Monitor Polski', listNoticesMonitorPolski],
+    ['API Sejmu', listNoticesSejmApi]
+  ];
+  const errors = [];
+
+  for (const [name, list] of sources) {
+    try {
+      const notices = (await list(year)).sort((a, b) => b.pos - a.pos);
+      if (notices.length < 2) throw new Error('za mało obwieszczeń na liście');
+      const [latest, previous] = notices;
+      const [cur, prev] = await Promise.all([fetchGovNotice(latest.pdfUrl), fetchGovNotice(previous.pdfUrl)]);
+      if (errors.length) console.warn(`Ceny maksymalne pobrane awaryjnie z: ${name}`);
+      return {
+        dates: [addDays(previous.announced, 1), addDays(latest.announced, 1)],
+        pb98: [prev.pb98, cur.pb98],
+        pb95: [prev.pb95, cur.pb95],
+        on: [prev.on, cur.on],
+        source: `M.P. ${year} poz. ${latest.pos}`,
+        via: name
+      };
+    } catch (err) {
+      errors.push(`${name}: ${err.message}`);
+    }
+  }
+  throw new Error(errors.join('; '));
 }
 
 // Główna funkcja: ceny maksymalne z Monitora Polskiego (państwowe źródło),
@@ -69,7 +115,7 @@ async function scrapeGovMaxPrices() {
 async function scrapeFuelPrices() {
   const [gov, epetrol] = await Promise.allSettled([scrapeGovMaxPrices(), scrapeEPetrol()]);
 
-  if (gov.status === 'rejected') console.error('Błąd Monitora Polskiego:', gov.reason);
+  if (gov.status === 'rejected') console.error('Błąd źródeł państwowych:', gov.reason.message);
   const ep = epetrol.status === 'fulfilled' ? epetrol.value : { success: false, error: epetrol.reason?.message };
   if (!ep.success) console.error('Błąd e-petrol.pl (prognozy):', ep.error);
 
@@ -79,7 +125,7 @@ async function scrapeFuelPrices() {
   if (!maxPrices && !forecasts) {
     return {
       success: false,
-      error: `Monitor Polski: ${gov.reason?.message}; e-petrol: ${ep.error}`
+      error: `${gov.reason?.message}; e-petrol: ${ep.error}`
     };
   }
   return { success: true, maxPrices, forecasts, scrapedAt: new Date().toISOString() };
