@@ -1,6 +1,6 @@
-// Pośrednik (proxy) dla bota cen paliw - wklej ten plik jako kod Workera w Cloudflare.
-// Po co: serwer Monitora Polskiego blokuje część adresów chmury Microsoftu, na której działa
-// GitHub Actions. Worker pobiera stronę z sieci Cloudflare i oddaje ją botowi.
+// Pośrednik (proxy) dla bota cen paliw - kod Workera Cloudflare (wdrażany z folderu cloudflare/ przez wrangler).
+// Po co: Monitor Polski nie przyjmuje połączeń z serwerów GitHub Actions w USA. Worker
+// (przypięty do Warszawy w wrangler.toml) pobiera stronę z Polski i oddaje ją botowi.
 //
 // Użycie: GET https://<twoj-worker>.workers.dev/?url=<adres zakodowany encodeURIComponent>
 //         z nagłówkiem X-Proxy-Key: <ten sam sekret co PROXY_KEY w ustawieniach Workera>

@@ -1,0 +1,10 @@
+# Konfiguracja pośrednika dla bota cen paliw (Cloudflare Workers).
+# Wdrożenie z tego folderu:  npx wrangler login  ->  npx wrangler deploy
+name = "mp-proxy"
+main = "worker.js"
+compatibility_date = "2026-11-01"
+
+# Monitor Polski nie przyjmuje połączeń spoza Europy, a Worker domyślnie działa
+# najbliżej tego, kto go wywołuje (GitHub Actions = USA). Przypinamy go do Warszawy.
+[placement]
+region = "gcp:europe-central2"

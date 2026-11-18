@@ -53,7 +53,7 @@ jobs:
           # Klucz API hostingu ImgBB
           IMGBB_API_KEY: ${{ secrets.IMGBB_API_KEY }}
 
-          # Pośrednik na Cloudflare Workers (cloudflare-worker.js) - Monitor Polski blokuje część IP GitHub Actions
+          # Pośrednik na Cloudflare Workers (cloudflare/worker.js) - Monitor Polski nie przyjmuje połączeń z serwerów GitHuba w USA
           MP_PROXY_URL: ${{ secrets.MP_PROXY_URL }}
           MP_PROXY_KEY: ${{ secrets.MP_PROXY_KEY }}
 

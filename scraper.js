@@ -12,7 +12,7 @@ const BROWSER_HEADERS = {
   'Accept-Language': 'pl-PL,pl;q=0.9,en-US;q=0.8,en;q=0.7'
 };
 
-// Opcjonalny pośrednik na Cloudflare Workers (kod w cloudflare-worker.js).
+// Opcjonalny pośrednik na Cloudflare Workers (kod w cloudflare/worker.js).
 // Ustawiany przez sekrety GitHub: MP_PROXY_URL i MP_PROXY_KEY. Bez nich bot łączy się bezpośrednio.
 const PROXY_URL = (process.env.MP_PROXY_URL || '').replace(/\/+$/, '');
 const PROXY_KEY = process.env.MP_PROXY_KEY || '';
@@ -50,12 +50,16 @@ async function proxyFetch(url, options = {}) {
   return res;
 }
 
-// Pobiera i parsuje jedno obwieszczenie Ministra Energii (PDF).
-async function fetchGovNotice(pdfUrl, get = fetchWithRetry) {
+// Pobiera PDF obwieszczenia i zwraca jego tekst (z pojedynczymi spacjami).
+async function fetchNoticeText(pdfUrl, get = fetchWithRetry) {
   const res = await get(pdfUrl);
   if (!res.ok) throw new Error(`PDF obwieszczenia: HTTP ${res.status}`);
-  const text = extractPdfText(Buffer.from(await res.arrayBuffer())).replace(/\s+/g, ' ');
+  return extractPdfText(Buffer.from(await res.arrayBuffer())).replace(/\s+/g, ' ');
+}
 
+// Parsuje zwykłe obwieszczenie o cenie maksymalnej (ceny brutto, z VAT).
+async function fetchGovNotice(pdfUrl, get = fetchWithRetry) {
+  const text = await fetchNoticeText(pdfUrl, get);
   const grab = (re, label) => {
     const m = text.match(re);
     if (!m) throw new Error(`Nie znaleziono ceny ${label} w obwieszczeniu ${pdfUrl}`);
@@ -68,6 +72,58 @@ async function fetchGovNotice(pdfUrl, get = fetchWithRetry) {
   };
 }
 
+// Obwieszczenie "zmieniające" poprawia ceny we wcześniejszym obwieszczeniu, np.:
+//   "W obwieszczeniu ... (M.P. poz. 1150) w pkt 3 wprowadza się następujące zmiany:
+//    1) w lit. a wyrazy „6,76 zł” zastępuje się wyrazami „6,96 zł”;
+//    2) w lit. b wyrazy „7,30 zł” zastępuje się wyrazami „7,51 zł”."
+// pkt 1 = Pb95, pkt 2 = Pb98, pkt 3 = ON; lit. b = cena z VAT (tę publikujemy).
+const FUEL_BY_POINT = { 1: 'pb95', 2: 'pb98', 3: 'on' };
+
+function isAmendment(notice) {
+  return /zmieniaj/i.test(notice.title || '');
+}
+
+function amendedPositions(text) {
+  return [...text.matchAll(/M\.\s*P\.\s*p\s*oz\.\s*(\d+)/g)].map(m => parseInt(m[1], 10));
+}
+
+function applyAmendment(prices, text, amendmentPos) {
+  const parts = text.split(/w pkt (\d)\b/);
+  let applied = 0;
+  for (let i = 1; i < parts.length; i += 2) {
+    const fuel = FUEL_BY_POINT[parts[i]];
+    const segment = parts[i + 1];
+    if (!fuel) continue;
+    const m = segment.match(/lit\.\s*b\s+wyrazy\s+.?(\d+,\d{2})\s*zł.?\s+zastępuje się wyrazami\s+.?(\d+,\d{2})\s*zł/);
+    if (!m) {
+      // Zmiana dotyczy tylko ceny netto (lit. a) - cena z VAT bez zmian.
+      if (/lit\.\s*a\s+wyrazy/.test(segment) && !/lit\.\s*b/.test(segment)) { applied++; continue; }
+      throw new Error(`Nie rozpoznano formatu zmiany ceny w obwieszczeniu poz. ${amendmentPos}`);
+    }
+    const [, oldPrice, newPrice] = m;
+    if (prices[fuel] !== oldPrice) {
+      throw new Error(`Obwieszczenie poz. ${amendmentPos} zmienia ${fuel} z ${oldPrice}, a w oryginale jest ${prices[fuel]}`);
+    }
+    prices[fuel] = newPrice;
+    applied++;
+  }
+  if (!applied) throw new Error(`Nie znaleziono żadnej zmiany ceny w obwieszczeniu poz. ${amendmentPos}`);
+}
+
+// Pobiera obwieszczenie i nakłada na nie wszystkie późniejsze obwieszczenia zmieniające.
+async function fetchNoticeWithAmendments(base, allNotices, get) {
+  const prices = await fetchGovNotice(base.pdfUrl, get);
+  const amendments = allNotices.filter(n => isAmendment(n) && n.pos > base.pos).sort((a, b) => a.pos - b.pos);
+  const appliedPositions = [];
+  for (const am of amendments) {
+    const text = await fetchNoticeText(am.pdfUrl, get);
+    if (!amendedPositions(text).includes(base.pos)) continue;
+    applyAmendment(prices, text, am.pos);
+    appliedPositions.push(am.pos);
+  }
+  return { prices, appliedPositions };
+}
+
 // Lista obwieszczeń ze strony Monitora Polskiego (publikacja tego samego dnia).
 // Lista jest stronicowana po 50 pozycji i domyślnie pokazuje ostatnią stronę, na której
 // może nie być żadnego obwieszczenia o paliwach - wtedy cofamy się o kolejne strony.
@@ -75,7 +131,7 @@ async function listNoticesMonitorPolski(year, get = fetchWithRetry, maxPages = 4
   const notices = [];
   let pageUrl = `${MP_BASE}/MP/rok/${year}`;
 
-  for (let page = 0; page < maxPages && pageUrl && notices.length < 2; page++) {
+  for (let page = 0; page < maxPages && pageUrl && notices.filter(n => !isAmendment(n)).length < 2; page++) {
     const res = await get(pageUrl);
     if (!res.ok) throw new Error(`lista: HTTP ${res.status}`);
     const $ = cheerio.load(await res.text());
@@ -86,7 +142,7 @@ async function listNoticesMonitorPolski(year, get = fetchWithRetry, maxPages = 4
       const pdf = $(row).find('a[href$=".pdf"]').attr('href');
       const dates = rowText.match(/\d{4}-\d{2}-\d{2}/g);
       const pos = parseInt(rowText.trim(), 10);
-      if (pdf && dates) notices.push({ pos, pdfUrl: MP_BASE + pdf, announced: dates[dates.length - 1] });
+      if (pdf && dates) notices.push({ pos, pdfUrl: MP_BASE + pdf, announced: dates[dates.length - 1], title: rowText.trim() });
     });
 
     // Link do poprzedniej strony wygląda jak "< Pozycje 1101 - 1150"
@@ -104,7 +160,7 @@ async function listNoticesSejmApi(year) {
   const data = await res.json();
   return (data.items || [])
     .filter(a => /Ministra Energii/i.test(a.title) && a.textPDF)
-    .map(a => ({ pos: a.pos, pdfUrl: `${SEJM_API}/MP/${year}/${a.pos}/text.pdf`, announced: a.promulgation }));
+    .map(a => ({ pos: a.pos, pdfUrl: `${SEJM_API}/MP/${year}/${a.pos}/text.pdf`, announced: a.promulgation, title: a.title }));
 }
 
 // Ceny maksymalne z oficjalnego źródła: obwieszczenia Ministra Energii w Monitorze Polskim.
@@ -112,28 +168,36 @@ async function listNoticesSejmApi(year) {
 // Zwraca ten sam format co scraper e-petrol: dates/pb98/pb95/on = [poprzednie, najnowsze].
 async function scrapeGovMaxPrices() {
   const year = new Date().getFullYear();
-  // Kolejność: Monitor Polski przez Cloudflare (jeśli skonfigurowany), bezpośrednio,
+  // Kolejność: Monitor Polski bezpośrednio, potem przez Cloudflare (jeśli skonfigurowany),
   // a na końcu API Sejmu (te same akty, ale z opóźnieniem).
+  // Gdy pośrednik jest ustawiony, bezpośrednio próbujemy tylko raz, żeby nie tracić minut na timeouty.
+  const directFetch = (url, options) => fetchWithRetry(url, options, PROXY_URL ? 1 : 3);
   const sources = [
+    ['Monitor Polski', y => listNoticesMonitorPolski(y, directFetch), directFetch],
     ...(PROXY_URL ? [['Monitor Polski przez Cloudflare', y => listNoticesMonitorPolski(y, proxyFetch), proxyFetch]] : []),
-    ['Monitor Polski', listNoticesMonitorPolski, fetchWithRetry],
     ['API Sejmu', listNoticesSejmApi, fetchWithRetry]
   ];
   const errors = [];
 
   for (const [name, list, get] of sources) {
     try {
-      const notices = (await list(year)).sort((a, b) => b.pos - a.pos);
-      if (notices.length < 2) throw new Error('za mało obwieszczeń na liście');
-      const [latest, previous] = notices;
-      const [cur, prev] = await Promise.all([fetchGovNotice(latest.pdfUrl, get), fetchGovNotice(previous.pdfUrl, get)]);
+      const all = (await list(year)).sort((a, b) => b.pos - a.pos);
+      const bases = all.filter(n => !isAmendment(n));
+      if (bases.length < 2) throw new Error('za mało obwieszczeń na liście');
+      const [latest, previous] = bases;
+      const [curN, prevN] = await Promise.all([
+        fetchNoticeWithAmendments(latest, all, get),
+        fetchNoticeWithAmendments(previous, all, get)
+      ]);
+      const cur = curN.prices, prev = prevN.prices;
+      const amendNote = curN.appliedPositions.length ? ` (zm. poz. ${curN.appliedPositions.join(', ')})` : '';
       if (errors.length) console.warn(`Ceny maksymalne pobrane awaryjnie z: ${name}. Wcześniejsze błędy: ${errors.join('; ')}`);
       return {
         dates: [addDays(previous.announced, 1), addDays(latest.announced, 1)],
         pb98: [prev.pb98, cur.pb98],
         pb95: [prev.pb95, cur.pb95],
         on: [prev.on, cur.on],
-        source: `M.P. ${year} poz. ${latest.pos}`,
+        source: `M.P. ${year} poz. ${latest.pos}${amendNote}`,
         via: name
       };
     } catch (err) {
@@ -284,5 +348,6 @@ async function scrapeEPetrol() {
 module.exports = {
   scrapeFuelPrices,
   scrapeGovMaxPrices,
-  scrapeEPetrol
+  scrapeEPetrol,
+  applyAmendment
 };
