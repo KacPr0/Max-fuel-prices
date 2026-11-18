@@ -44,3 +44,6 @@ Thumbs.db
 *.njsproj
 *.sln
 *.sw?
+
+# Pliki tymczasowe narzędzia wrangler (Cloudflare Workers)
+.wrangler/
