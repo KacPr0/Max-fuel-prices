@@ -4,6 +4,10 @@ name = "mp-proxy"
 main = "worker.js"
 compatibility_date = "2026-11-01"
 
+# Nie kasuj przy wdrożeniu zmiennych ustawionych w panelu Cloudflare.
+# Klucz PROXY_KEY ustawiaj jako sekret: npx wrangler secret put PROXY_KEY
+keep_vars = true
+
 # Monitor Polski nie przyjmuje połączeń spoza Europy, a Worker domyślnie działa
 # najbliżej tego, kto go wywołuje (GitHub Actions = USA). Przypinamy go do Warszawy.
 [placement]
