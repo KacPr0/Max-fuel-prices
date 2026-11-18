@@ -64,7 +64,7 @@ app.get('/api/status', (req, res) => {
 });
 
  // GET /api/prices
- // Scrapes current prices (Monitor Polski + e-petrol.pl forecasts) and returns them.
+ // Scrapes current maximum prices (Monitor Polski) and returns them.
 app.get('/api/prices', async (req, res) => {
   const data = await scrapeFuelPrices();
   res.json(data);
@@ -105,9 +105,6 @@ app.get('/api/preview/:type', async (req, res) => {
     if (type === 'maxPrices') {
       if (!data.maxPrices) return res.status(404).json({ error: 'Brak danych o cenach maksymalnych.' });
       result = await generateFuelCard('maxPrices', data.maxPrices, branding, customOptions);
-    } else if (type === 'forecasts') {
-      if (!data.forecasts) return res.status(404).json({ error: 'Brak danych o prognozach.' });
-      result = await generateFuelCard('forecasts', data.forecasts, branding, customOptions);
     } else if (type === 'custom') {
       const text = req.query.text || 'Twoje ogłoszenie...';
       result = await generateFuelCard('custom', { text }, branding, customOptions);
@@ -145,18 +142,14 @@ app.get('/api/logs', (req, res) => {
 
  // POST /api/trigger
  // Manually trigger scraping and publishing.
- // Optional body: { force: true, forceForecast: true, type: 'combined'|'maxPrices'|'forecasts'|'custom', platforms: [], customText: '' }
+ // Optional body: { force: true, type: 'maxPrices'|'custom', platforms: [], customText: '' }
 app.post('/api/trigger', async (req, res) => {
   try {
-    const { force, forceForecast, type, platforms, customText, customCaption, titleMain, titleSub, footerTxt, fontSize } = req.body;
+    const { force, type, platforms, customText, customCaption, titleMain, titleSub, footerTxt, fontSize } = req.body;
     logActivity(`[MANUAL] Ręczne wyzwolenie publikacji przez Panel Administracyjny.`);
     
     let result;
-    if (type === 'combined') {
-      result = await checkAndPublish({ forceCombined: true, force: true, platforms });
-    } else if (type === 'forecasts') {
-      result = await checkAndPublish({ forceForecast: true, platforms });
-    } else if (type === 'custom') {
+    if (type === 'custom') {
       result = await checkAndPublish({ type: 'custom', customText, customCaption, platforms, titleMain, titleSub, footerTxt, fontSize: parseInt(fontSize) });
     } else {
       result = await checkAndPublish({ force: force !== false, platforms });

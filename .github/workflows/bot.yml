@@ -2,8 +2,8 @@ name: Bot Cen Paliw PL
 
 on:
   schedule:
-    # Uruchamiaj co 15 minut w godzinach 8:00 - 15:00 UTC (czyli ok. 9:00/10:00 do 16:00/17:00 czasu polskiego)
-    # Jest to idealny przedział czasowy, w którym e-petrol.pl publikuje nowe oficjalne ceny.
+    # Co 15 minut w godzinach 8:00-15:45 UTC (zimą 9:00-16:45, latem 10:00-17:45 czasu polskiego).
+    # W tym czasie Minister Energii publikuje w Monitorze Polskim ceny maksymalne na kolejny dzień.
     - cron: '*/15 8-15 * * *'
   
   # Umożliwia ręczne uruchomienie bota jednym kliknięciem bezpośrednio z interfejsu GitHub

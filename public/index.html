@@ -84,14 +84,6 @@
               <span class="stat-sub">Ceny maksymalne</span>
             </div>
           </div>
-          <div class="stat-card">
-            <div class="stat-icon forecast-icon"><i data-lucide="calendar"></i></div>
-            <div class="stat-info">
-              <h3>Ostatnia prognoza</h3>
-              <p class="stat-val" id="stat-last-forecast">Ładowanie...</p>
-              <span class="stat-sub">Prognozy tygodniowe</span>
-            </div>
-          </div>
         </div>
 
         <div class="dashboard-grid">
@@ -100,7 +92,7 @@
             <!-- Scraped prices card -->
             <div class="content-card glass-panel">
               <div class="card-header">
-                <h3>Aktualne ceny (Monitor Polski / e-petrol.pl)</h3>
+                <h3>Aktualne ceny (Monitor Polski)</h3>
                 <span class="badge" id="scraped-time">Brak danych</span>
               </div>
               <div class="card-body">
@@ -129,37 +121,6 @@
                   </div>
                 </div>
 
-                <div class="price-section-title spacer-top">PROGNOZA TYGODNIOWA</div>
-                <div class="prices-grid 2x2" id="forecasts-container">
-                  <div class="price-item pb95">
-                    <div class="fuel-badge small">95</div>
-                    <div class="price-details">
-                      <span class="label">Pb95</span>
-                      <span class="val" id="price-fore-95">- zł</span>
-                    </div>
-                  </div>
-                  <div class="price-item pb98">
-                    <div class="fuel-badge small">98</div>
-                    <div class="price-details">
-                      <span class="label">Pb98</span>
-                      <span class="val" id="price-fore-98">- zł</span>
-                    </div>
-                  </div>
-                  <div class="price-item diesel">
-                    <div class="fuel-badge small">ON</div>
-                    <div class="price-details">
-                      <span class="label">Diesel (ON)</span>
-                      <span class="val" id="price-fore-on">- zł</span>
-                    </div>
-                  </div>
-                  <div class="price-item lpg">
-                    <div class="fuel-badge small">LPG</div>
-                    <div class="price-details">
-                      <span class="label">Autogaz (LPG)</span>
-                      <span class="val" id="price-fore-lpg">- zł</span>
-                    </div>
-                  </div>
-                </div>
               </div>
             </div>
 
@@ -174,7 +135,7 @@
                 <div class="timeline">
                   <div class="timeline-step">
                     <div class="circle done">✓</div>
-                    <div class="text">Pobieranie obwieszczenia Ministra Energii z Monitora Polskiego (ceny max) i prognoz z e-petrol.pl.</div>
+                    <div class="text">Pobieranie obwieszczenia Ministra Energii z Monitora Polskiego.</div>
                   </div>
                   <div class="timeline-step">
                     <div class="circle">⚡</div>
@@ -196,7 +157,6 @@
                 <h3>Podgląd grafiki do publikacji</h3>
                 <div class="tabs-mini">
                   <button class="mini-tab active" data-preview-type="maxPrices">Ceny Maksymalne</button>
-                  <button class="mini-tab" data-preview-type="forecasts">Prognoza</button>
                 </div>
               </div>
               <div class="card-body text-center">
@@ -263,13 +223,6 @@
                       <div class="option-content">
                         <i data-lucide="trending-up"></i>
                         <span>Ceny Maksymalne</span>
-                      </div>
-                    </label>
-                    <label class="post-type-option">
-                      <input type="radio" name="postType" value="combined" />
-                      <div class="option-content">
-                        <i data-lucide="copy"></i>
-                        <span>Karuzela (Piątek)</span>
                       </div>
                     </label>
                     <label class="post-type-option">
@@ -393,7 +346,6 @@
                 <h3>Aktualny podgląd z Twoimi zmianami</h3>
                 <div class="tabs-mini">
                   <button class="mini-tab-cust active" data-preview-type="maxPrices">Ceny Maksymalne</button>
-                  <button class="mini-tab-cust" data-preview-type="forecasts">Prognoza</button>
                 </div>
               </div>
               <div class="card-body text-center">

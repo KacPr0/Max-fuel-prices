@@ -15,7 +15,6 @@ The system executes a seamless, hands-free operational cycle: it retrieves fresh
 ### 2. Premium Graphic Design
 *   The system generates cohesive visual assets in a modern acrylic glass aesthetic featuring vibrant neon highlights:
     *   **Maximum Price Cards:** Dynamic horizontal boards presenting current statutory maximum rates alongside calculated trends and price differences (increases/decreases) relative to previous periods.
-    *   **Weekly Forecast Cards:** A perfectly aligned 2x2 horizontal grid with identical card heights (160px) and clean, unified typography showing projected price ranges for the upcoming week.
 *   **Visual Consistency:** Equal card dimensions, custom font pairings using premium typography, and a dedicated brand mascot logo integrated into the footer of every generated asset.
 
 ### 3. Advanced Administration Panel (Control Dashboard)

@@ -1,7 +1,7 @@
 const { scrapeFuelPrices } = require('./scraper');
 
 async function test() {
-  console.log('Rozpoczynam scrapowanie e-petrol.pl...');
+  console.log('Pobieram ceny maksymalne z Monitora Polskiego...');
   const result = await scrapeFuelPrices();
   console.log('Wynik scrapowania:');
   console.log(JSON.stringify(result, null, 2));

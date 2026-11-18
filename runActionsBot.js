@@ -47,7 +47,6 @@ async function run() {
 
   logActivity(`[GITHUB ACTIONS] Zakończenie przebiegu. Sukces: ${result.success}`);
   if (result.postedMaxPrices) logActivity('[GITHUB ACTIONS] Opublikowano nowe ceny maksymalne.');
-  if (result.postedForecasts) logActivity('[GITHUB ACTIONS] Opublikowano nową prognozę tygodniową.');
 
   // Punkt 1: zgłaszamy awarię kodem wyjścia, żeby GitHub wysłał maila o nieudanym workflow.
   // Żeby nie dostawać maila co 15 minut, przy cronie robimy to tylko w ostatnim przebiegu dnia.

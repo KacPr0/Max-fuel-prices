@@ -8,7 +8,7 @@
 // Bezpieczeństwo: bez poprawnego klucza Worker nic nie zwraca, a pobierać pozwala
 // tylko z domen z listy poniżej (żeby nie dało się go użyć jako otwartego proxy).
 
-const ALLOWED_HOSTS = ['monitorpolski.gov.pl', 'www.e-petrol.pl', 'e-petrol.pl'];
+const ALLOWED_HOSTS = ['monitorpolski.gov.pl'];
 
 export default {
   async fetch(request, env) {

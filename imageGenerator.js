@@ -247,176 +247,6 @@ function generateMaxPricesSVG(data, brandingText, customOptions = {}) {
   `;
 }
 
- // Generates a beautiful SVG string for Weekly Fuel Forecasts.
-function generateForecastsSVG(data, brandingText, customOptions = {}) {
-  const {
-    period,
-    pb95,
-    pb98,
-    on,
-    lpg
-  } = data;
-
-  const bgGrad1 = customOptions.bgGrad1 || '#060517'; // Very dark indigo/blue
-  const bgGrad2 = customOptions.bgGrad2 || '#170514'; // Very dark magenta/black
-
-  const logoBase64 = getLogoBase64();
-  const footerBranding = logoBase64 
-    ? `<text class="footer-branding" x="818" y="0" text-anchor="end">${brandingText}</text>
-       <image href="${logoBase64}" x="834" y="-32" width="48" height="48" />`
-    : `<text class="footer-branding" x="880" y="0" text-anchor="end">${brandingText}</text>`;
-
-
-  return `
-    <svg width="1080" height="1350" viewBox="0 0 1080 1350" xmlns="http://www.w3.org/2000/svg">
-      <defs>
-        <linearGradient id="bgGrad" x1="0%" y1="0%" x2="100%" y2="100%">
-          <stop offset="0%" stop-color="${bgGrad1}" />
-          <stop offset="100%" stop-color="${bgGrad2}" />
-        </linearGradient>
-        
-        <radialGradient id="orbGold" cx="20%" cy="80%" r="70%">
-          <stop offset="0%" stop-color="#eab308" stop-opacity="0.2" />
-          <stop offset="100%" stop-color="#eab308" stop-opacity="0" />
-        </radialGradient>
-        
-        <radialGradient id="orbViolet" cx="80%" cy="30%" r="60%">
-          <stop offset="0%" stop-color="#d946ef" stop-opacity="0.2" />
-          <stop offset="100%" stop-color="#d946ef" stop-opacity="0" />
-        </radialGradient>
-
-        <linearGradient id="badge95" x1="0%" y1="0%" x2="100%" y2="100%">
-          <stop offset="0%" stop-color="#10b981" />
-          <stop offset="100%" stop-color="#059669" />
-        </linearGradient>
-
-        <linearGradient id="badge98" x1="0%" y1="0%" x2="100%" y2="100%">
-          <stop offset="0%" stop-color="#047857" />
-          <stop offset="100%" stop-color="#064e3b" />
-        </linearGradient>
-
-        <linearGradient id="badgeON" x1="0%" y1="0%" x2="100%" y2="100%">
-          <stop offset="0%" stop-color="#475569" />
-          <stop offset="100%" stop-color="#1e293b" />
-        </linearGradient>
-
-        <linearGradient id="badgeLPG" x1="0%" y1="0%" x2="100%" y2="100%">
-          <stop offset="0%" stop-color="#f97316" />
-          <stop offset="100%" stop-color="#ea580c" />
-        </linearGradient>
-      </defs>
-
-      <style>
-        @import url('https://fonts.googleapis.com/css2?family=Outfit:wght@400;600;800&amp;family=Inter:wght@400;600;700&amp;display=swap');
-        .title-main { font-family: 'Outfit', sans-serif; font-weight: 800; font-size: 56px; fill: #ffffff; letter-spacing: 2px; }
-        .title-sub { font-family: 'Inter', sans-serif; font-weight: 600; font-size: 26px; fill: #c084fc; letter-spacing: 3px; }
-        .date-label { font-family: 'Inter', sans-serif; font-weight: 400; font-size: 24px; fill: #cbd5e1; }
-        .date-val { font-family: 'Outfit', sans-serif; font-weight: 600; font-size: 38px; fill: #f8fafc; }
-        
-        .fuel-badge-txt { font-family: 'Outfit', sans-serif; font-weight: 800; font-size: 46px; fill: #ffffff; text-anchor: middle; }
-        .fuel-name { font-family: 'Inter', sans-serif; font-weight: 700; font-size: 22px; fill: #94a3b8; }
-        .price-val { font-family: 'Outfit', sans-serif; font-weight: 800; font-size: 42px; fill: #ffffff; }
-        .price-unit { font-family: 'Inter', sans-serif; font-weight: 600; font-size: 24px; fill: #64748b; }
-        
-        .footer-txt { font-family: 'Inter', sans-serif; font-weight: 600; font-size: 24px; fill: #5b21b6; letter-spacing: 1px; }
-        .footer-branding { font-family: 'Outfit', sans-serif; font-weight: 800; font-size: 28px; fill: #c084fc; letter-spacing: 1.5px; }
-      </style>
-
-      <!-- 1. Background -->
-      <rect width="1080" height="1350" fill="url(#bgGrad)" />
-      
-      <!-- Glowing Orbs -->
-      <circle cx="200" cy="1000" r="500" fill="url(#orbGold)" />
-      <circle cx="900" cy="350" r="500" fill="url(#orbViolet)" />
-
-      <!-- 2. Header Section -->
-      <g transform="translate(100, 140)">
-        <text class="title-sub" x="0" y="0">PROGNOZY CEN PALIW</text>
-        <text class="title-main" x="0" y="65">NA NADCHODZĄCY TYDZIEŃ</text>
-      </g>
-
-      <!-- 3. Period Panel -->
-      <g transform="translate(100, 300)">
-        <rect width="880" height="110" rx="24" fill="#ffffff" fill-opacity="0.04" stroke="#ffffff" stroke-opacity="0.08" stroke-width="1.5" />
-        <text class="date-label" x="40" y="45">Prognoza na okres:</text>
-        <text class="date-val" x="40" y="85">${period}</text>
-
-        <rect x="580" y="30" width="260" height="50" rx="12" fill="#eab308" fill-opacity="0.1" stroke="#eab308" stroke-opacity="0.2" stroke-width="1" />
-        <text font-family="'Inter', sans-serif" font-weight="700" font-size="18" fill="#eab308" x="710" y="61" text-anchor="middle">PRZEWIDYWANE CENY</text>
-      </g>
-
-      <!-- 4. Fuel Cards - 4 items in a 2x2 Grid (160px Height, matching Max Prices!) -->
-      <!-- Row 1: Pb95 & Pb98 -->
-      <!-- Pb95 -->
-      <g transform="translate(100, 480)">
-        <rect width="430" height="160" rx="28" fill="#ffffff" fill-opacity="0.03" stroke="#ffffff" stroke-opacity="0.06" stroke-width="1.5" />
-        
-        <rect x="30" y="30" width="100" height="100" rx="20" fill="url(#badge95)" />
-        <text class="fuel-badge-txt" x="80" y="94">95</text>
-        
-        <text class="fuel-name" x="145" y="66">Pb95</text>
-
-        <text x="145" y="124" text-anchor="start">
-          <tspan class="price-val">${pb95}</tspan>
-          <tspan class="price-unit" dx="5">zł/l</tspan>
-        </text>
-      </g>
-
-      <!-- Pb98 -->
-      <g transform="translate(550, 480)">
-        <rect width="430" height="160" rx="28" fill="#ffffff" fill-opacity="0.03" stroke="#ffffff" stroke-opacity="0.06" stroke-width="1.5" />
-        
-        <rect x="30" y="30" width="100" height="100" rx="20" fill="url(#badge98)" />
-        <text class="fuel-badge-txt" x="80" y="94">98</text>
-        
-        <text class="fuel-name" x="145" y="66">Pb98</text>
-
-        <text x="145" y="124" text-anchor="start">
-          <tspan class="price-val">${pb98}</tspan>
-          <tspan class="price-unit" dx="5">zł/l</tspan>
-        </text>
-      </g>
-
-      <!-- Row 2: ON & LPG -->
-      <!-- ON -->
-      <g transform="translate(100, 700)">
-        <rect width="430" height="160" rx="28" fill="#ffffff" fill-opacity="0.03" stroke="#ffffff" stroke-opacity="0.06" stroke-width="1.5" />
-        
-        <rect x="30" y="30" width="100" height="100" rx="20" fill="url(#badgeON)" />
-        <text class="fuel-badge-txt" x="80" y="94">ON</text>
-        
-        <text class="fuel-name" x="145" y="66">Diesel</text>
-
-        <text x="145" y="124" text-anchor="start">
-          <tspan class="price-val">${on}</tspan>
-          <tspan class="price-unit" dx="5">zł/l</tspan>
-        </text>
-      </g>
-
-      <!-- LPG -->
-      <g transform="translate(550, 700)">
-        <rect width="430" height="160" rx="28" fill="#ffffff" fill-opacity="0.03" stroke="#ffffff" stroke-opacity="0.06" stroke-width="1.5" />
-        
-        <rect x="30" y="30" width="100" height="100" rx="20" fill="url(#badgeLPG)" />
-        <text class="fuel-badge-txt" style="font-size: 30px;" x="80" y="90">LPG</text>
-        
-        <text class="fuel-name" x="145" y="66">Autogaz</text>
-
-        <text x="145" y="124" text-anchor="start">
-          <tspan class="price-val">${lpg}</tspan>
-          <tspan class="price-unit" dx="5">zł/l</tspan>
-        </text>
-      </g>
-
-      <!-- 5. Footer Section -->
-      <g transform="translate(100, 1220)">
-        <text class="footer-txt" x="0" y="0">Źródło: e-petrol.pl</text>
-        ${footerBranding}
-      </g>
-    </svg>
-  `;
-}
-
 // Splits text into lines for SVG
 function splitTextIntoLines(text, maxLineLength = 40) {
   // Support manual newlines first
@@ -536,7 +366,7 @@ function generateCustomSVG(data, brandingText, customOptions = {}) {
 }
 
  // Main function to generate the PNG card buffer from scraped data.
- // @param {'maxPrices' | 'forecasts'} type
+ // @param {'maxPrices' | 'custom'} type
  // @param {any} data Scraped data object
  // @param {string} brandingText User branding (e.g. "@CenyPaliwBot")
  // @param {any} customOptions Custom styling parameters
@@ -547,8 +377,6 @@ async function generateFuelCard(type, data, brandingText = '@MaksymalneCenyPaliw
     
     if (type === 'maxPrices') {
       svgString = generateMaxPricesSVG(data, brandingText, customOptions);
-    } else if (type === 'forecasts') {
-      svgString = generateForecastsSVG(data, brandingText, customOptions);
     } else if (type === 'custom') {
       svgString = generateCustomSVG(data, brandingText, customOptions);
     } else {
@@ -574,6 +402,5 @@ async function generateFuelCard(type, data, brandingText = '@MaksymalneCenyPaliw
 module.exports = {
   generateFuelCard,
   generateMaxPricesSVG,
-  generateForecastsSVG,
   generateCustomSVG
 };

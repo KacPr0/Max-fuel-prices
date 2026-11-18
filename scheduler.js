@@ -20,8 +20,7 @@ function logActivity(message) {
 function loadDatabase() {
   if (!fs.existsSync(dbPath)) {
     const initialDb = {
-      lastPublishedMaxPriceDate: '', // e.g. '2026-05-30'
-      lastPublishedForecastPeriod: '' // e.g. '1-7 czerwca 2026'
+      lastPublishedMaxPriceDate: '' // e.g. '2026-05-30'
     };
     fs.writeFileSync(dbPath, JSON.stringify(initialDb, null, 2));
     return initialDb;
@@ -67,7 +66,7 @@ async function checkAndPublish(options = {}) {
     }
   }
 
-  logActivity('[BOT] Sprawdzanie Monitora Polskiego (ceny max) i e-petrol.pl (prognozy) pod kątem nowych danych...');
+  logActivity('[BOT] Sprawdzanie Monitora Polskiego pod kątem nowych cen maksymalnych...');
   const scrapeResult = await scrapeFuelPrices();
 
   if (!scrapeResult.success) {
@@ -75,7 +74,7 @@ async function checkAndPublish(options = {}) {
     return { success: false, error: scrapeResult.error };
   }
 
-  const { maxPrices, forecasts } = scrapeResult;
+  const { maxPrices } = scrapeResult;
   if (maxPrices && maxPrices.via) logActivity(`[BOT] Ceny maksymalne pobrane z: ${maxPrices.via} (${maxPrices.source}).`);
 
   // Zabezpieczenie: nie publikujemy jako "na jutro" cen, które już obowiązują
@@ -83,78 +82,12 @@ async function checkAndPublish(options = {}) {
   const todayWarsaw = new Date().toLocaleDateString('sv-SE', { timeZone: 'Europe/Warsaw' });
   if (maxPrices && maxPrices.dates.length >= 2 && maxPrices.dates[1] <= todayWarsaw && !options.force) {
     logActivity(`[INFO] Najnowsze ceny maksymalne (od ${maxPrices.dates[1]}) już obowiązują - czekam na nowe obwieszczenie.`);
-    return { success: true, scrapedAt: scrapeResult.scrapedAt, postedMaxPrices: false, postedForecasts: false, postedCombined: false, publishFailed: false, info: 'Brak nowego obwieszczenia.' };
+    return { success: true, scrapedAt: scrapeResult.scrapedAt, postedMaxPrices: false, publishFailed: false, info: 'Brak nowego obwieszczenia.' };
   }
   let postedMaxPrices = false;
-  let postedForecasts = false;
-  let postedCombined = false;
   let publishFailed = false;
 
-  const today = new Date();
-  // 5 represents Friday in JS
-  const isFriday = today.getDay() === 5 || options.forceCombined;
-
-  // Friday Special Case: Combined Carousel Post (Max Prices + Forecasts in one post!)
-  if (isFriday && maxPrices && forecasts && maxPrices.dates.length >= 2) {
-    const tomorrowDate = maxPrices.dates[1];
-    const period = forecasts.period;
-
-    const isNewMax = tomorrowDate !== db.lastPublishedMaxPriceDate;
-    const isNewFore = period !== db.lastPublishedForecastPeriod;
-
-    if (isNewMax || isNewFore || options.force) {
-      logActivity(`[NOWE DANE - PIĄTEK] Wykryto dzień piątkowy. Tworzenie postu karuzelowego (Ceny Max + Prognoza)...`);
-      
-      try {
-        logActivity(`[BOT] Generowanie grafiki 1/2: ceny maksymalne...`);
-        const pngMax = await generateFuelCard('maxPrices', maxPrices, brandingText);
-        
-        logActivity(`[BOT] Generowanie grafiki 2/2: prognozy tygodniowe...`);
-        const pngForecast = await generateFuelCard('forecasts', forecasts, brandingText);
-
-        logActivity(`[BOT] Rozpoczynam publikację połączonej karuzeli na wybranych platformach...`);
-        const publishResult = await publishPost('combined', { maxPrices, forecasts }, [pngMax, pngForecast], logActivity, options.platforms);
-
-        if (publishResult.success) {
-          db.lastPublishedMaxPriceDate = tomorrowDate;
-          db.lastPublishedForecastPeriod = period;
-          saveDatabase(db);
-          logActivity(`[SUKCES] Pomyślnie opublikowano piątkową karuzelę (Ceny Max na dzień ${tomorrowDate} oraz Prognozy na okres ${period}).`);
-          postedCombined = true;
-          postedMaxPrices = true;
-          postedForecasts = true;
-        } else {
-          logActivity(`[BŁĄD] Publikacja karuzeli piątkowej nie powiodła się.`);
-          publishFailed = true;
-        }
-      } catch (err) {
-        logActivity(`[WYJĄTEK] Błąd podczas przetwarzania karuzeli piątkowej: ${err.message}`);
-        publishFailed = true;
-      }
-
-      return {
-        success: true,
-        scrapedAt: scrapeResult.scrapedAt,
-        postedMaxPrices,
-        postedForecasts,
-        postedCombined,
-        publishFailed
-      };
-    } else {
-      logActivity(`[INFO] Piątkowa karuzela (ceny maksymalne na ${tomorrowDate} oraz prognoza ${period}) została już wcześniej opublikowana.`);
-      return {
-        success: true,
-        scrapedAt: scrapeResult.scrapedAt,
-        postedMaxPrices: false,
-        postedForecasts: false,
-        postedCombined: false,
-        info: 'Piątkowa karuzela została już opublikowana.'
-      };
-    }
-  }
-
-  // Standard Cases: Monday - Thursday, Saturday - Sunday (Independent posts)
-  // 1. Process Daily Maximum Prices
+  // Publikacja cen maksymalnych na jutro
   if (maxPrices && maxPrices.dates.length >= 2) {
     const tomorrowDate = maxPrices.dates[1];
     
@@ -186,45 +119,10 @@ async function checkAndPublish(options = {}) {
     }
   }
 
-  // 2. Process Weekly Forecasts (Standalone) - Only if explicitly forced and NOT Friday.
-  // Standard scheduled flows only publish weekly forecasts in the combined Friday carousel.
-  if (options.forceForecast && forecasts && forecasts.period) {
-    const period = forecasts.period;
-    
-    if (period !== db.lastPublishedForecastPeriod || options.force) {
-      logActivity(`[NOWE DANE] Wykryto nową prognozę tygodniową na okres: ${period}!`);
-      
-      try {
-        logActivity(`[BOT] Generowanie grafiki prognoz...`);
-        const pngBuffer = await generateFuelCard('forecasts', forecasts, brandingText);
-        
-        logActivity(`[BOT] Rozpoczynam publikację prognoz...`);
-        const publishResult = await publishPost('forecasts', forecasts, pngBuffer, logActivity, options.platforms);
-        
-        if (publishResult.success) {
-          db.lastPublishedForecastPeriod = period;
-          saveDatabase(db);
-          logActivity(`[SUKCES] Pomyślnie opublikowano prognozę tygodniową na okres ${period}.`);
-          postedForecasts = true;
-        } else {
-          logActivity(`[BŁĄD] Publikacja prognozy nie powiodła się.`);
-          publishFailed = true;
-        }
-      } catch (err) {
-        logActivity(`[WYJĄTEK] Błąd podczas przetwarzania prognozy: ${err.message}`);
-        publishFailed = true;
-      }
-    } else {
-      logActivity(`[INFO] Prognoza na okres ${period} została już wcześniej opublikowana.`);
-    }
-  }
-
   return {
     success: true,
     scrapedAt: scrapeResult.scrapedAt,
     postedMaxPrices,
-    postedForecasts,
-    postedCombined,
     publishFailed
   };
 }

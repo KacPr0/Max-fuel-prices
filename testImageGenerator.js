@@ -4,7 +4,7 @@ const { generateFuelCard } = require('./imageGenerator');
 
 async function test() {
   try {
-    console.log('Pobieram dane z e-petrol.pl...');
+    console.log('Pobieram dane z Monitora Polskiego...');
     const data = await scrapeFuelPrices();
     
     if (!data.success) {
@@ -29,13 +29,7 @@ async function test() {
       fs.writeFileSync('./test_max_prices.png', pngBuffer);
       console.log('✅ Zapisano grafikę testową do test_max_prices.png!');
     }
-    
-    console.log('Generuję grafikę prognoz tygodniowych...');
-    if (data.forecasts) {
-      const pngBuffer = await generateFuelCard('forecasts', data.forecasts, '@MaksymalneCenyPaliw');
-      fs.writeFileSync('./test_forecasts.png', pngBuffer);
-      console.log('✅ Zapisano grafikę prognoz do test_forecasts.png!');
-    }
+
   } catch (error) {
     console.error('Błąd podczas testu generowania grafiki:', error);
   }

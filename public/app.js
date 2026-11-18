@@ -17,17 +17,12 @@ document.addEventListener('DOMContentLoaded', () => {
   const statMode = document.getElementById('stat-mode');
   const statModeSub = document.getElementById('stat-mode-sub');
   const statLastMax = document.getElementById('stat-last-max');
-  const statLastForecast = document.getElementById('stat-last-forecast');
   const scrapedTime = document.getElementById('scraped-time');
 
   // DOM Elements - Price listings
   const priceMax95 = document.getElementById('price-max-95');
   const priceMax98 = document.getElementById('price-max-98');
   const priceMaxOn = document.getElementById('price-max-on');
-  const priceFore95 = document.getElementById('price-fore-95');
-  const priceFore98 = document.getElementById('price-fore-98');
-  const priceForeOn = document.getElementById('price-fore-on');
-  const priceForeLpg = document.getElementById('price-fore-lpg');
 
   // DOM Elements - Live Card Preview
   const imageCardPreview = document.getElementById('image-card-preview');
@@ -178,7 +173,6 @@ document.addEventListener('DOMContentLoaded', () => {
 
       // Update date stats
       statLastMax.textContent = data.db.lastPublishedMaxPriceDate || 'Brak publikacji';
-      statLastForecast.textContent = data.db.lastPublishedForecastPeriod || 'Brak danych';
 
       // Update settings form input values (from existing .env loaded in backend)
       checkMockMode.checked = data.config.mockMode;
@@ -231,13 +225,6 @@ document.addEventListener('DOMContentLoaded', () => {
         priceMaxOn.textContent = `${data.maxPrices.on[1]} zł/l`;
       }
 
-      // Ingest Forecasts
-      if (data.forecasts) {
-        priceFore95.textContent = `${data.forecasts.pb95} zł/l`;
-        priceFore98.textContent = `${data.forecasts.pb98} zł/l`;
-        priceForeOn.textContent = `${data.forecasts.on} zł/l`;
-        priceForeLpg.textContent = `${data.forecasts.lpg} zł/l`;
-      }
 
     } catch (error) {
       console.error('Błąd wstrzykiwania cen:', error);
@@ -581,7 +568,6 @@ document.addEventListener('DOMContentLoaded', () => {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ 
           force: true, 
-          forceForecast: type === 'forecasts',
           type: type,
           platforms: platforms,
           customText: customText,
