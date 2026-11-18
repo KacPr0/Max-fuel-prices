@@ -12,6 +12,11 @@ const BROWSER_HEADERS = {
   'Accept-Language': 'pl-PL,pl;q=0.9,en-US;q=0.8,en;q=0.7'
 };
 
+// Opcjonalny pośrednik na Cloudflare Workers (kod w cloudflare-worker.js).
+// Ustawiany przez sekrety GitHub: MP_PROXY_URL i MP_PROXY_KEY. Bez nich bot łączy się bezpośrednio.
+const PROXY_URL = (process.env.MP_PROXY_URL || '').replace(/\/+$/, '');
+const PROXY_KEY = process.env.MP_PROXY_KEY || '';
+
 function addDays(isoDate, days) {
   const d = new Date(isoDate + 'T12:00:00Z');
   d.setUTCDate(d.getUTCDate() + days);
@@ -34,9 +39,20 @@ async function fetchWithRetry(url, options = {}, tries = 3) {
   throw lastError;
 }
 
+// To samo co fetchWithRetry, ale przez Workera na Cloudflare.
+async function proxyFetch(url, options = {}) {
+  if (!PROXY_URL) throw new Error('pośrednik nie jest skonfigurowany (brak MP_PROXY_URL)');
+  const res = await fetchWithRetry(`${PROXY_URL}/?url=${encodeURIComponent(url)}`, {
+    ...options,
+    headers: { ...BROWSER_HEADERS, ...(options.headers || {}), 'X-Proxy-Key': PROXY_KEY }
+  }, 2);
+  if (res.status === 401) throw new Error('pośrednik odrzucił klucz (sprawdź MP_PROXY_KEY)');
+  return res;
+}
+
 // Pobiera i parsuje jedno obwieszczenie Ministra Energii (PDF).
-async function fetchGovNotice(pdfUrl) {
-  const res = await fetchWithRetry(pdfUrl);
+async function fetchGovNotice(pdfUrl, get = fetchWithRetry) {
+  const res = await get(pdfUrl);
   if (!res.ok) throw new Error(`PDF obwieszczenia: HTTP ${res.status}`);
   const text = extractPdfText(Buffer.from(await res.arrayBuffer())).replace(/\s+/g, ' ');
 
@@ -53,19 +69,30 @@ async function fetchGovNotice(pdfUrl) {
 }
 
 // Lista obwieszczeń ze strony Monitora Polskiego (publikacja tego samego dnia).
-async function listNoticesMonitorPolski(year) {
-  const res = await fetchWithRetry(`${MP_BASE}/MP/rok/${year}`);
-  if (!res.ok) throw new Error(`lista: HTTP ${res.status}`);
-  const $ = cheerio.load(await res.text());
+// Lista jest stronicowana po 50 pozycji i domyślnie pokazuje ostatnią stronę, na której
+// może nie być żadnego obwieszczenia o paliwach - wtedy cofamy się o kolejne strony.
+async function listNoticesMonitorPolski(year, get = fetchWithRetry, maxPages = 4) {
   const notices = [];
-  $('tr').each((i, row) => {
-    const rowText = $(row).text().replace(/\s+/g, ' ');
-    if (!/Obwieszczenie Ministra Energii.*maksymalnej ceny paliw/i.test(rowText)) return;
-    const pdf = $(row).find('a[href$=".pdf"]').attr('href');
-    const dates = rowText.match(/\d{4}-\d{2}-\d{2}/g);
-    const pos = parseInt(rowText.trim(), 10);
-    if (pdf && dates) notices.push({ pos, pdfUrl: MP_BASE + pdf, announced: dates[dates.length - 1] });
-  });
+  let pageUrl = `${MP_BASE}/MP/rok/${year}`;
+
+  for (let page = 0; page < maxPages && pageUrl && notices.length < 2; page++) {
+    const res = await get(pageUrl);
+    if (!res.ok) throw new Error(`lista: HTTP ${res.status}`);
+    const $ = cheerio.load(await res.text());
+
+    $('tr').each((i, row) => {
+      const rowText = $(row).text().replace(/\s+/g, ' ');
+      if (!/Obwieszczenie Ministra Energii.*maksymalnej ceny paliw/i.test(rowText)) return;
+      const pdf = $(row).find('a[href$=".pdf"]').attr('href');
+      const dates = rowText.match(/\d{4}-\d{2}-\d{2}/g);
+      const pos = parseInt(rowText.trim(), 10);
+      if (pdf && dates) notices.push({ pos, pdfUrl: MP_BASE + pdf, announced: dates[dates.length - 1] });
+    });
+
+    // Link do poprzedniej strony wygląda jak "< Pozycje 1101 - 1150"
+    const prev = $(`a[href^="/MP/rok/${year}/"]`).filter((i, a) => $(a).text().trim().startsWith('<')).first().attr('href');
+    pageUrl = prev ? MP_BASE + prev : null;
+  }
   return notices;
 }
 
@@ -85,18 +112,21 @@ async function listNoticesSejmApi(year) {
 // Zwraca ten sam format co scraper e-petrol: dates/pb98/pb95/on = [poprzednie, najnowsze].
 async function scrapeGovMaxPrices() {
   const year = new Date().getFullYear();
+  // Kolejność: Monitor Polski przez Cloudflare (jeśli skonfigurowany), bezpośrednio,
+  // a na końcu API Sejmu (te same akty, ale z opóźnieniem).
   const sources = [
-    ['Monitor Polski', listNoticesMonitorPolski],
-    ['API Sejmu', listNoticesSejmApi]
+    ...(PROXY_URL ? [['Monitor Polski przez Cloudflare', y => listNoticesMonitorPolski(y, proxyFetch), proxyFetch]] : []),
+    ['Monitor Polski', listNoticesMonitorPolski, fetchWithRetry],
+    ['API Sejmu', listNoticesSejmApi, fetchWithRetry]
   ];
   const errors = [];
 
-  for (const [name, list] of sources) {
+  for (const [name, list, get] of sources) {
     try {
       const notices = (await list(year)).sort((a, b) => b.pos - a.pos);
       if (notices.length < 2) throw new Error('za mało obwieszczeń na liście');
       const [latest, previous] = notices;
-      const [cur, prev] = await Promise.all([fetchGovNotice(latest.pdfUrl), fetchGovNotice(previous.pdfUrl)]);
+      const [cur, prev] = await Promise.all([fetchGovNotice(latest.pdfUrl, get), fetchGovNotice(previous.pdfUrl, get)]);
       if (errors.length) console.warn(`Ceny maksymalne pobrane awaryjnie z: ${name}. Wcześniejsze błędy: ${errors.join('; ')}`);
       return {
         dates: [addDays(previous.announced, 1), addDays(latest.announced, 1)],
@@ -139,14 +169,20 @@ async function scrapeFuelPrices() {
 // @returns {Promise<{success: boolean, maxPrices?: any, forecasts?: any, error?: string}>}
 async function scrapeEPetrol() {
   try {
-    // Uwaga: e-petrol stoi za Cloudflare i może blokować IP GitHub Actions.
-    const response = await fetch('https://www.e-petrol.pl/', {
+    // Uwaga: e-petrol stoi za Cloudflare i blokuje IP GitHub Actions (HTTP 403),
+    // więc przy błędzie próbujemy jeszcze przez pośrednika, jeśli jest skonfigurowany.
+    const epetrolOptions = {
       headers: {
         'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36',
         'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.7',
         'Accept-Language': 'pl-PL,pl;q=0.9,en-US;q=0.8,en;q=0.7'
       }
-    });
+    };
+    let response = await fetch('https://www.e-petrol.pl/', epetrolOptions);
+    if (!response.ok && PROXY_URL) {
+      console.warn(`e-petrol.pl: HTTP ${response.status}, próbuję przez Cloudflare...`);
+      response = await proxyFetch('https://www.e-petrol.pl/', epetrolOptions);
+    }
 
     if (!response.ok) {
       throw new Error(`Błąd pobierania strony: HTTP ${response.status}`);
