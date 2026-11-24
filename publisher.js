@@ -1,6 +1,7 @@
 const fs = require('fs');
 const path = require('path');
 const { TwitterApi } = require('twitter-api-v2');
+const { formatEffectiveDate } = require('./imageGenerator');
 
 // Parses polish price strings (e.g., "6,05") to floats.
 function parsePrice(str) {
@@ -8,21 +9,14 @@ function parsePrice(str) {
   return parseFloat(str.replace(',', '.'));
 }
 
-// Formats difference between tomorrow's and today's price.
+// Zmiana ceny względem poprzedniego obwieszczenia, np. "bez zmian", "+0,01 zł", "−0,07 zł".
 function getPriceDiff(tomorrowStr, todayStr) {
   const tomorrow = parsePrice(tomorrowStr);
   const today = parsePrice(todayStr);
-  if (!tomorrow || !today) return 'bez zmian';
-  
-  const diff = tomorrow - today;
-  if (diff === 0) return 'bez zmian';
-  
-  const diffFormatted = Math.abs(diff).toFixed(2).replace('.', ',');
-  if (diff < 0) {
-    return `-${diffFormatted} zł/l`;
-  } else {
-    return `+${diffFormatted} zł/l`;
-  }
+  const diff = Math.round((tomorrow - today) * 100) / 100;
+  if (!tomorrow || !today || diff === 0) return 'bez zmian';
+  const value = Math.abs(diff).toFixed(2).replace('.', ',');
+  return diff < 0 ? `−${value} zł` : `+${value} zł`;
 }
 
 // Helper to upload image to ImgBB (Free Image Hosting) for Instagram.
@@ -49,43 +43,30 @@ async function uploadToImgBB(pngBuffer) {
   return json.data.url;
 }
 
-// Generates captions for the social media posts.
+// Opisy postów. Na X krótsza wersja (limit 280 znaków), bez zdania o źródle.
 function generateCaption(type, data, platform = 'meta') {
-  if (platform === 'twitter') {
-    if (type === 'maxPrices') {
-      const { dates, pb95, pb98, on } = data;
-      const tomorrowDate = dates[1];
-      
-      const diff95 = getPriceDiff(pb95[1], pb95[0]);
-      const diff98 = getPriceDiff(pb98[1], pb98[0]);
-      const diffON = getPriceDiff(on[1], on[0]);
-
-      return `URZĘDOWE CENY MAKSYMALNE NA JUTRO (${tomorrowDate})\n\n` +
-             `🟢 Pb95: ${pb95[1]} zł/l (${diff95})\n` +
-             `🟢 Pb98: ${pb98[1]} zł/l (${diff98})\n` +
-             `⚫️ ON: ${on[1]} zł/l (${diffON})\n\n` +
-             `Żadna stacja nie może sprzedawać drożej! ⚠️\n\n` +
-             `#cenypaliw #polska`;
-    }
-  }
-
   if (type === 'maxPrices') {
     const { dates, pb95, pb98, on } = data;
-    const tomorrowDate = dates[1];
-    
-    const diff95 = getPriceDiff(pb95[1], pb95[0]);
-    const diff98 = getPriceDiff(pb98[1], pb98[0]);
-    const diffON = getPriceDiff(on[1], on[0]);
+    const lines = [
+      `Benzyna 95: ${pb95[1]} zł/l (${getPriceDiff(pb95[1], pb95[0])})`,
+      `Benzyna 98: ${pb98[1]} zł/l (${getPriceDiff(pb98[1], pb98[0])})`,
+      `Olej napędowy: ${on[1]} zł/l (${getPriceDiff(on[1], on[0])})`
+    ].join('\n');
+    const header = `Ceny maksymalne paliw od ${formatEffectiveDate(dates[1])}`;
 
-    return `URZĘDOWE CENY MAKSYMALNE PALIW NA JUTRO (${tomorrowDate})\n\n` +
-           `Od jutra na polskich stacjach benzynowych obowiązują nowe maksymalne ceny detaliczne paliw:\n\n` +
-           `🟢 Pb95: ${pb95[1]} zł/l (${diff95})\n` +
-           `🟢 Pb98: ${pb98[1]} zł/l (${diff98})\n` +
-           `⚫️ Diesel (ON): ${on[1]} zł/l (${diffON})\n\n` +
-           `⚠️ Są to ceny maksymalne ogłoszone na podstawie obwieszczenia Ministra Energii. Żadna stacja w Polsce nie może sprzedawać paliw powyżej tych stawek!\n\n` +
-           `Śledź nas po codzienne aktualizacje cen!\n\n` +
-           `#cenypaliw #paliwo #benzyna #diesel #stacjabenzynowa #kierowcy #samochody #polska`;
-  } else if (type === 'custom') {
+    if (platform === 'twitter') {
+      return `${header}\n\n${lines}\n\nStacje nie mogą sprzedawać paliwa drożej.\n\n#cenypaliw #paliwo`;
+    }
+
+    // "M.P. 2026 poz. 1150 (zm. poz. 1154)" -> "M.P. 2026 poz. 1150, zm. poz. 1154"
+    const source = data.source
+      ? `Źródło: obwieszczenie Ministra Energii, ${data.source.replace(/\s*\((zm\. poz\. [^)]+)\)/, ', $1')}.`
+      : 'Źródło: obwieszczenie Ministra Energii.';
+    return `${header}\n\n${lines}\n\nStacje nie mogą sprzedawać paliwa drożej. ${source}\n\n` +
+           `#cenypaliw #paliwo #benzyna #diesel #stacjabenzynowa #kierowcy #polska`;
+  }
+
+  if (type === 'custom') {
     const textToUse = data.caption && data.caption.trim() ? data.caption : data.text;
     return `${textToUse}\n\n#cenypaliw #polska`;
   }

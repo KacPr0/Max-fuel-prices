@@ -29,10 +29,31 @@ jobs:
           node-version: '22'
           cache: 'npm'
 
+      # Gdy ceny na jutro są już opublikowane, pomijamy instalację i uruchomienie (oszczędza minuty Actions).
+      - name: Sprawdzenie, czy ceny na jutro są już opublikowane
+        id: check
+        env:
+          EVENT_NAME: ${{ github.event_name }}
+        run: |
+          node -e "
+            const db = require('./db.json');
+            const tomorrow = new Date(Date.now() + 864e5).toLocaleDateString('sv-SE', { timeZone: 'Europe/Warsaw' });
+            const skip = process.env.EVENT_NAME !== 'workflow_dispatch' && db.lastPublishedMaxPriceDate >= tomorrow;
+            console.log('skip=' + skip);
+          " >> "$GITHUB_OUTPUT"
+
       - name: Instalacja zależności
+        if: steps.check.outputs.skip != 'true'
         run: npm install
 
+      # Font Inter do grafik (bez niego grafika i tak powstanie, z fontem zastępczym systemu).
+      - name: Instalacja fontów do grafik
+        if: steps.check.outputs.skip != 'true'
+        continue-on-error: true
+        run: sudo apt-get update -qq && sudo apt-get install -y -qq fonts-inter
+
       - name: Uruchomienie bota cen paliw
+        if: steps.check.outputs.skip != 'true'
         run: node runActionsBot.js
         env:
           # Wyłączamy tryb symulacji w GitHub Actions, aby bot publikował na żywo
@@ -58,6 +79,7 @@ jobs:
           MP_PROXY_KEY: ${{ secrets.MP_PROXY_KEY }}
 
       - name: Zapisanie stanu bota (db.json)
+        if: steps.check.outputs.skip != 'true'
         run: |
           git config --global user.name "github-actions[bot]"
           git config --global user.email "41898282+github-actions[bot]@users.noreply.github.com"

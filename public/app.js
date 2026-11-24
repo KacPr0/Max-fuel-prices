@@ -87,24 +87,24 @@ document.addEventListener('DOMContentLoaded', () => {
   // Tab Titles & Descriptions mapping
   const tabInfo = {
     dashboard: {
-      title: 'Pulpit sterowniczy',
-      desc: 'Podgląd aktualnych cen, harmonogramu i statusu bota.'
+      title: 'Pulpit',
+      desc: 'Ceny z ostatniego obwieszczenia, harmonogram i podgląd posta'
     },
     posting: {
-      title: 'Ręczne Publikowanie',
-      desc: 'Wysyłaj posty z poziomu panelu na wybrane platformy.'
+      title: 'Publikowanie',
+      desc: 'Ręczna publikacja cen albo własnego ogłoszenia'
     },
     customizer: {
-      title: 'Personalizacja grafiki',
-      desc: 'Dostosuj wygląd karty cenowej (tło, kolorystykę, branding) publikowanej przez bota.'
+      title: 'Wygląd grafiki',
+      desc: 'Nazwa profilu w stopce i tło grafiki'
     },
     settings: {
-      title: 'Ustawienia połączeń API',
-      desc: 'Zarządzaj kluczami i tokenami dla portali społecznościowych Facebook, Instagram i Twitter.'
+      title: 'Klucze API',
+      desc: 'Klucze Facebooka, Instagrama, X i ImgBB dla panelu na tym komputerze'
     },
     console: {
-      title: 'Konsola operacyjna',
-      desc: 'Podgląd szczegółowych logów z działania bota w czasie rzeczywistym.'
+      title: 'Logi',
+      desc: 'Zapis działania bota, odświeżany co kilka sekund'
     }
   };
 
@@ -157,22 +157,22 @@ document.addEventListener('DOMContentLoaded', () => {
       sidebarStatus.className = 'bot-status-capsule';
       if (data.config.mockMode) {
         sidebarStatus.classList.add('mock');
-        sidebarStatus.querySelector('.status-txt').textContent = 'Tryb Symulacji';
+        sidebarStatus.querySelector('.status-txt').textContent = 'Tryb symulacji';
         
         statMode.textContent = 'Symulacja';
-        statMode.style.color = 'var(--accent-warning)';
-        statModeSub.textContent = 'Posty zapisywane lokalnie';
+        statMode.style.color = '';
+        statModeSub.textContent = 'Posty zapisują się w folderze history';
       } else {
         sidebarStatus.classList.add('online');
-        sidebarStatus.querySelector('.status-txt').textContent = 'Bot Aktywny';
+        sidebarStatus.querySelector('.status-txt').textContent = 'Publikuje na żywo';
         
-        statMode.textContent = 'Produkcyjny';
-        statMode.style.color = 'var(--accent-success)';
-        statModeSub.textContent = 'Wysyłanie na FB / IG / X';
+        statMode.textContent = 'Na żywo';
+        statMode.style.color = '';
+        statModeSub.textContent = 'Posty trafiają na Facebooka, Instagram i X';
       }
 
       // Update date stats
-      statLastMax.textContent = data.db.lastPublishedMaxPriceDate || 'Brak publikacji';
+      statLastMax.textContent = data.db.lastPublishedMaxPriceDate || 'Brak'
 
       // Update settings form input values (from existing .env loaded in backend)
       checkMockMode.checked = data.config.mockMode;
@@ -208,21 +208,22 @@ document.addEventListener('DOMContentLoaded', () => {
       
       if (!data.success) {
         console.error('Błąd scrapowania:', data.error);
-        scrapedTime.textContent = 'Błąd pobierania';
-        scrapedTime.style.borderColor = 'rgba(239, 68, 68, 0.2)';
+        scrapedTime.textContent = 'Nie udało się pobrać';
         scrapedTime.style.color = 'var(--accent-danger)';
         return;
       }
 
       // Format scrape time
       const date = new Date(data.scrapedAt);
-      scrapedTime.textContent = `Aktualizacja: ${date.toLocaleTimeString('pl-PL')} ${date.toLocaleDateString('pl-PL')}`;
+      scrapedTime.style.color = '';
+      const effective = data.maxPrices ? `od ${data.maxPrices.dates[1]} · ` : '';
+      scrapedTime.textContent = `${effective}pobrano ${date.toLocaleTimeString('pl-PL', { hour: '2-digit', minute: '2-digit' })}`;
 
       // Ingest Maximum Prices
       if (data.maxPrices) {
-        priceMax95.textContent = `${data.maxPrices.pb95[1]} zł/l`;
-        priceMax98.textContent = `${data.maxPrices.pb98[1]} zł/l`;
-        priceMaxOn.textContent = `${data.maxPrices.on[1]} zł/l`;
+        priceMax95.textContent = data.maxPrices.pb95[1];
+        priceMax98.textContent = data.maxPrices.pb98[1];
+        priceMaxOn.textContent = data.maxPrices.on[1];
       }
 
 
@@ -312,7 +313,7 @@ document.addEventListener('DOMContentLoaded', () => {
   btnSaveBranding.addEventListener('click', async () => {
     try {
       btnSaveBranding.disabled = true;
-      btnSaveBranding.textContent = 'Zapisywanie...';
+      btnSaveBranding.textContent = 'Zapisywanie';
       
       currentBranding = inputBranding.value;
       currentBg1 = colorBg1.value;
@@ -339,20 +340,18 @@ document.addEventListener('DOMContentLoaded', () => {
 
       if (!res.ok) throw new Error('Nie udało się zapisać konfiguracji.');
 
-      btnSaveBranding.textContent = 'Zapisano!';
-      btnSaveBranding.style.backgroundColor = 'var(--accent-success)';
+      btnSaveBranding.textContent = 'Zapisano';
       
       setTimeout(() => {
         btnSaveBranding.disabled = false;
-        btnSaveBranding.textContent = 'Zastosuj zmiany';
-        btnSaveBranding.style.backgroundColor = '';
+        btnSaveBranding.textContent = 'Zapisz nazwę profilu';
       }, 2000);
 
       fetchStatus();
     } catch (err) {
       console.error(err);
       btnSaveBranding.disabled = false;
-      btnSaveBranding.textContent = 'Błąd zapisu!';
+      btnSaveBranding.textContent = 'Nie udało się zapisać';
     }
   });
 
@@ -379,7 +378,7 @@ document.addEventListener('DOMContentLoaded', () => {
   apiForm.addEventListener('submit', async (e) => {
     e.preventDefault();
     settingsSaveStatus.className = 'status-msg';
-    settingsSaveStatus.textContent = 'Zapisywanie kluczy API...';
+    settingsSaveStatus.textContent = 'Zapisywanie kluczy';
 
     const payload = {
       MOCK_MODE: checkMockMode.checked ? 'true' : 'false',
@@ -405,7 +404,7 @@ document.addEventListener('DOMContentLoaded', () => {
       if (!res.ok) throw new Error('Nie udało się zapisać pliku .env.');
 
       settingsSaveStatus.classList.add('success');
-      settingsSaveStatus.textContent = 'Sukces! Klucze zostały pomyślnie zapisane w pliku .env bota.';
+      settingsSaveStatus.textContent = 'Klucze zapisane w pliku .env';
       fetchStatus();
     } catch (err) {
       settingsSaveStatus.classList.add('error');
@@ -497,11 +496,11 @@ document.addEventListener('DOMContentLoaded', () => {
     imagePostingPreview.style.opacity = '0.5';
 
     postingPreviewTimeout = setTimeout(() => {
-      const text = encodeURIComponent(postCustomText.value || 'Treść ogłoszenia...');
+      const text = encodeURIComponent(postCustomText.value || 'Treść ogłoszenia');
       const fontSize = postCustomFontSize.value;
-      const titleMain = encodeURIComponent(postCustomTitleMain.value || 'OGŁOSZENIE');
-      const titleSub = encodeURIComponent(postCustomTitleSub.value || 'WAŻNA INFORMACJA');
-      const footerTxt = encodeURIComponent(postCustomFooter.value || 'Informacja Bota');
+      const titleMain = encodeURIComponent(postCustomTitleMain.value || 'Ogłoszenie');
+      const titleSub = encodeURIComponent(postCustomTitleSub.value || '');
+      const footerTxt = encodeURIComponent(postCustomFooter.value || 'Informacja bota');
 
       // Force cache bust
       const timestamp = new Date().getTime();
@@ -539,7 +538,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     if (platforms.length === 0) {
       postingStatus.classList.add('error');
-      postingStatus.textContent = 'Wybierz przynajmniej jedną platformę do publikacji!';
+      postingStatus.textContent = 'Wybierz co najmniej jedną platformę';
       return;
     }
 
@@ -553,15 +552,15 @@ document.addEventListener('DOMContentLoaded', () => {
 
     if (type === 'custom' && !customText.trim()) {
       postingStatus.classList.add('error');
-      postingStatus.textContent = 'Wpisz treść ogłoszenia!';
+      postingStatus.textContent = 'Wpisz treść ogłoszenia';
       return;
     }
 
     try {
       const initialText = btnSubmitPost.innerHTML;
       btnSubmitPost.disabled = true;
-      btnSubmitPost.innerHTML = `<div class="spinner" style="width: 16px; height: 16px; border-width: 2px; display: inline-block; vertical-align: middle; margin-right: 8px;"></div> Wysyłanie...`;
-      postingStatus.textContent = 'Trwa publikacja, to może potrwać dłuższą chwilę...';
+      btnSubmitPost.textContent = 'Publikowanie';
+      postingStatus.textContent = 'Publikacja na Instagramie trwa około 30 sekund';
 
       const res = await fetch('/api/trigger', {
         method: 'POST',
@@ -589,21 +588,19 @@ document.addEventListener('DOMContentLoaded', () => {
       let detailsText = '';
       if (data.publishResult && data.publishResult.results) {
         const r = data.publishResult.results;
-        detailsText = '<br><br><strong>Logi publikacji:</strong><br>';
-        if (r.facebook) detailsText += `Facebook: ${r.facebook.success ? '✅ Sukces' : '❌ Błąd: ' + (r.facebook.error || 'nieznany')}<br>`;
-        if (r.instagram) detailsText += `Instagram: ${r.instagram.success ? '✅ Sukces' : '❌ Błąd: ' + (r.instagram.error || 'nieznany')}<br>`;
-        if (r.twitter) detailsText += `X (Twitter): ${r.twitter.success ? '✅ Sukces' : '❌ Błąd: ' + (r.twitter.error || 'nieznany')}<br>`;
+        detailsText = '<br>';
+        if (r.facebook) detailsText += `Facebook: ${r.facebook.success ? 'opublikowano' : 'błąd, ' + (r.facebook.error || 'nieznany')}<br>`;
+        if (r.instagram) detailsText += `Instagram: ${r.instagram.success ? 'opublikowano' : 'błąd, ' + (r.instagram.error || 'nieznany')}<br>`;
+        if (r.twitter) detailsText += `X: ${r.twitter.success ? 'opublikowano' : 'błąd, ' + (r.twitter.error || 'nieznany')}<br>`;
       }
-      postingStatus.innerHTML = `Sukces! Post został przetworzony.${detailsText}`;
+      postingStatus.innerHTML = `Post przetworzony${detailsText}`;
       
-      btnSubmitPost.innerHTML = `<i data-lucide="check-circle" style="vertical-align: middle;"></i> Gotowe!`;
-      btnSubmitPost.style.backgroundColor = 'var(--accent-success)';
+      btnSubmitPost.innerHTML = `<i data-lucide="check"></i> Gotowe`;
       lucide.createIcons();
 
       setTimeout(() => {
         btnSubmitPost.disabled = false;
         btnSubmitPost.innerHTML = initialText;
-        btnSubmitPost.style.backgroundColor = '';
         postingStatus.innerHTML = '';
         postingStatus.className = 'status-msg';
         lucide.createIcons();
@@ -619,14 +616,12 @@ document.addEventListener('DOMContentLoaded', () => {
       postingStatus.textContent = `Błąd: ${err.message}`;
       
       const initialText = btnSubmitPost.innerHTML;
-      btnSubmitPost.innerHTML = `<i data-lucide="alert-triangle"></i> Błąd!`;
-      btnSubmitPost.style.backgroundColor = 'var(--accent-danger)';
+      btnSubmitPost.innerHTML = `<i data-lucide="alert-triangle"></i> Nie udało się`;
       lucide.createIcons();
 
       setTimeout(() => {
         btnSubmitPost.disabled = false;
-        btnSubmitPost.innerHTML = '<i data-lucide="send"></i> Wyślij Post Teraz';
-        btnSubmitPost.style.backgroundColor = '';
+        btnSubmitPost.innerHTML = '<i data-lucide="send"></i> Opublikuj teraz';
         lucide.createIcons();
       }, 4000);
     }

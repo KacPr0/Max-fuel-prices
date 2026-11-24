@@ -3,11 +3,11 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Ceny Paliw PL - Panel Administracyjny</title>
+  <title>Ceny Paliw PL – panel bota</title>
   <!-- Google Fonts -->
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&amp;family=Outfit:wght@400;600;700;800&amp;display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&amp;family=JetBrains+Mono:wght@400;500&amp;display=swap" rel="stylesheet">
   <!-- CSS Styles -->
   <link rel="stylesheet" href="styles.css">
   <!-- Lucide Icons (CDN) -->
@@ -19,34 +19,34 @@
     <!-- Sidebar Navigation -->
     <aside class="sidebar">
       <div class="brand">
-        <div class="brand-icon" style="background: none; -webkit-text-fill-color: initial; display: flex; align-items: center;"><img src="logo.png" alt="Logo" style="width: 42px; height: 42px; border-radius: 12px; object-fit: cover; filter: drop-shadow(0 0 8px rgba(139, 92, 246, 0.4));"></div>
+        <div class="brand-icon"><img src="logo.png" alt="" /></div>
         <div class="brand-text">
           <h1>Ceny Paliw PL</h1>
-          <span>Panel Bota</span>
+          <span>Panel bota</span>
         </div>
       </div>
       
       <nav class="nav-menu">
         <button class="nav-btn active" data-tab="dashboard">
-          <i data-lucide="layout-dashboard"></i> Pulpit sterowniczy
+          <i data-lucide="layout-dashboard"></i> Pulpit
         </button>
         <button class="nav-btn" data-tab="posting">
           <i data-lucide="send"></i> Publikowanie
         </button>
         <button class="nav-btn" data-tab="customizer">
-          <i data-lucide="palette"></i> Wygląd grafiki
+          <i data-lucide="image"></i> Wygląd grafiki
         </button>
         <button class="nav-btn" data-tab="settings">
-          <i data-lucide="settings"></i> Ustawienia API
+          <i data-lucide="key-round"></i> Klucze API
         </button>
         <button class="nav-btn" data-tab="console">
-          <i data-lucide="terminal"></i> Logi systemowe
+          <i data-lucide="scroll-text"></i> Logi
         </button>
       </nav>
 
       <div class="bot-status-capsule offline" id="sidebar-status">
         <span class="status-indicator"></span>
-        <span class="status-txt">Łączenie...</span>
+        <span class="status-txt">Łączenie</span>
       </div>
     </aside>
 
@@ -56,11 +56,8 @@
       <!-- HEADER -->
       <header class="top-header">
         <div class="page-title">
-          <h2 id="current-tab-title">Pulpit sterowniczy</h2>
-          <p id="current-tab-desc">Podgląd aktualnych cen, harmonogramu i statusu bota.</p>
-        </div>
-        <div class="header-actions">
-          <!-- Action buttons removed, posting is handled in the new tab -->
+          <h2 id="current-tab-title">Pulpit</h2>
+          <p id="current-tab-desc">Ceny z ostatniego obwieszczenia, harmonogram i podgląd posta</p>
         </div>
       </header>
 
@@ -69,19 +66,17 @@
         <!-- Status Bar Cards -->
         <div class="grid-stats">
           <div class="stat-card">
-            <div class="stat-icon mode-icon"><i data-lucide="cpu"></i></div>
             <div class="stat-info">
               <h3>Tryb pracy</h3>
-              <p class="stat-val" id="stat-mode">Ładowanie...</p>
-              <span class="stat-sub" id="stat-mode-sub">Mock Mode</span>
+              <p class="stat-val" id="stat-mode">–</p>
+              <span class="stat-sub" id="stat-mode-sub"></span>
             </div>
           </div>
           <div class="stat-card">
-            <div class="stat-icon max-icon"><i data-lucide="dollar-sign"></i></div>
             <div class="stat-info">
-              <h3>Ostatnia publikacja (Max)</h3>
-              <p class="stat-val" id="stat-last-max">Ładowanie...</p>
-              <span class="stat-sub">Ceny maksymalne</span>
+              <h3>Ostatnio opublikowane ceny na</h3>
+              <p class="stat-val" id="stat-last-max">–</p>
+              <span class="stat-sub">Data z db.json</span>
             </div>
           </div>
         </div>
@@ -92,31 +87,30 @@
             <!-- Scraped prices card -->
             <div class="content-card glass-panel">
               <div class="card-header">
-                <h3>Aktualne ceny (Monitor Polski)</h3>
-                <span class="badge" id="scraped-time">Brak danych</span>
+                <h3>Ceny maksymalne, zł/l</h3>
+                <span class="badge" id="scraped-time">–</span>
               </div>
               <div class="card-body">
-                <div class="price-section-title">URZĘDOWE CENY MAKSYMALNE</div>
                 <div class="prices-grid" id="max-prices-container">
                   <div class="price-item pb95">
                     <div class="fuel-badge">95</div>
                     <div class="price-details">
-                      <span class="label">Benzyna Pb95</span>
-                      <span class="val" id="price-max-95">- zł</span>
+                      <span class="label">Benzyna 95</span>
+                      <span class="val" id="price-max-95">–</span>
                     </div>
                   </div>
                   <div class="price-item pb98">
                     <div class="fuel-badge">98</div>
                     <div class="price-details">
-                      <span class="label">Benzyna Pb98</span>
-                      <span class="val" id="price-max-98">- zł</span>
+                      <span class="label">Benzyna 98</span>
+                      <span class="val" id="price-max-98">–</span>
                     </div>
                   </div>
                   <div class="price-item diesel">
                     <div class="fuel-badge">ON</div>
                     <div class="price-details">
-                      <span class="label">Oleju Napędowy (Diesel)</span>
-                      <span class="val" id="price-max-on">- zł</span>
+                      <span class="label">Olej napędowy</span>
+                      <span class="val" id="price-max-on">–</span>
                     </div>
                   </div>
                 </div>
@@ -127,23 +121,23 @@
             <!-- Bot scheduler details -->
             <div class="content-card glass-panel spacer-top">
               <div class="card-header">
-                <h3>Harmonogram bota (Inteligentny)</h3>
-                <span class="status-tag active">Aktywny</span>
+                <h3>Harmonogram</h3>
+                <span class="status-tag active">Włączony</span>
               </div>
               <div class="card-body schedule-info">
-                <p>Bot sprawdza ceny automatycznie co <strong>15 minut</strong> w godzinach <strong>09:00 - 15:59</strong> codziennie.</p>
+                <p>Panel sprawdza Monitor Polski co <strong>15 minut</strong>, codziennie od <strong>9:00 do 15:45</strong></p>
                 <div class="timeline">
                   <div class="timeline-step">
-                    <div class="circle done">✓</div>
-                    <div class="text">Pobieranie obwieszczenia Ministra Energii z Monitora Polskiego.</div>
+                    <div class="circle"><i data-lucide="file-text"></i></div>
+                    <div class="text">Pobiera najnowsze obwieszczenie Ministra Energii</div>
                   </div>
                   <div class="timeline-step">
-                    <div class="circle">⚡</div>
-                    <div class="text">Wykrycie nowej daty w tabeli ME -> Natychmiastowe wyzwolenie publikacji.</div>
+                    <div class="circle"><i data-lucide="send"></i></div>
+                    <div class="text">Publikuje post, gdy pojawią się ceny na nowy dzień</div>
                   </div>
                   <div class="timeline-step">
-                    <div class="circle">✓</div>
-                    <div class="text">Blokada ponownej publikacji w tym samym dniu (ochrona przed spamem).</div>
+                    <div class="circle"><i data-lucide="lock"></i></div>
+                    <div class="text">Nie publikuje dwa razy cen na ten sam dzień</div>
                   </div>
                 </div>
               </div>
@@ -154,21 +148,21 @@
           <div class="grid-col-right">
             <div class="content-card glass-panel preview-panel">
               <div class="card-header">
-                <h3>Podgląd grafiki do publikacji</h3>
+                <h3>Podgląd posta</h3>
                 <div class="tabs-mini">
-                  <button class="mini-tab active" data-preview-type="maxPrices">Ceny Maksymalne</button>
+                  <button class="mini-tab active" data-preview-type="maxPrices">Ceny maksymalne</button>
                 </div>
               </div>
               <div class="card-body text-center">
                 <div class="image-preview-container">
-                  <img id="image-card-preview" src="" alt="Podgląd karty cen paliw..." />
+                  <img id="image-card-preview" src="" alt="Podgląd grafiki z cenami maksymalnymi" />
                   <div class="preview-spinner" id="preview-loader">
                     <div class="spinner"></div>
                   </div>
                 </div>
                 <div class="preview-controls">
                   <button class="btn btn-secondary btn-sm" id="btn-refresh-preview">
-                    <i data-lucide="refresh-cw"></i> Odśwież podgląd
+                    <i data-lucide="refresh-cw"></i> Odśwież
                   </button>
                 </div>
               </div>
@@ -183,50 +177,50 @@
           <!-- Form Column -->
           <div class="customizer-settings glass-panel">
             <h3>Ręczne publikowanie</h3>
-            <p class="description">Wybierz na jakie platformy chcesz wysłać post oraz jakiego rodzaju ma to być treść.</p>
+            <p class="description">Wybierz platformy i rodzaj posta</p>
             
             <form id="form-posting" class="spacer-top">
               <!-- Platform selection -->
               <div class="settings-section">
-                <h4>Wybierz Platformy</h4>
+                <h4>Platformy</h4>
                 <div class="form-row">
                   <div class="form-group checkbox-group col-third">
                     <label class="switch-container">
                       <input type="checkbox" id="post-plat-facebook" value="facebook" checked />
                       <span class="slider"></span>
                     </label>
-                    <span class="switch-title" style="margin-left: 10px;">Facebook</span>
+                    <span class="switch-title">Facebook</span>
                   </div>
                   <div class="form-group checkbox-group col-third">
                     <label class="switch-container">
                       <input type="checkbox" id="post-plat-instagram" value="instagram" checked />
                       <span class="slider"></span>
                     </label>
-                    <span class="switch-title" style="margin-left: 10px;">Instagram</span>
+                    <span class="switch-title">Instagram</span>
                   </div>
                   <div class="form-group checkbox-group col-third">
                     <label class="switch-container">
                       <input type="checkbox" id="post-plat-twitter" value="twitter" checked />
                       <span class="slider"></span>
                     </label>
-                    <span class="switch-title" style="margin-left: 10px;">Twitter / X</span>
+                    <span class="switch-title">X</span>
                   </div>
                 </div>
               </div>
 
               <!-- Post Type Selection -->
               <div class="settings-section spacer-top">
-                <h4>Wybierz Typ Posta</h4>
+                <h4>Rodzaj posta</h4>
                   <div class="post-type-selector">
                     <label class="post-type-option">
-                      <input type="radio" name="postType" value="maxPrices" />
+                      <input type="radio" name="postType" value="maxPrices" checked />
                       <div class="option-content">
                         <i data-lucide="trending-up"></i>
-                        <span>Ceny Maksymalne</span>
+                        <span>Ceny maksymalne</span>
                       </div>
                     </label>
                     <label class="post-type-option">
-                      <input type="radio" name="postType" value="custom" checked />
+                      <input type="radio" name="postType" value="custom" />
                       <div class="option-content">
                         <i data-lucide="message-square"></i>
                         <span>Własny post</span>
@@ -237,42 +231,42 @@
 
               <!-- Custom text input -->
               <div class="settings-section spacer-top" id="custom-text-container" style="display: none;">
-                <h4>Treść Własnego Posta</h4>
-                <p class="description">Wpisz tekst ogłoszenia. Zostanie on wygenerowany na grafice oraz użyty jako treść posta.</p>
+                <h4>Treść własnego posta</h4>
+                <p class="description">Tekst trafi na grafikę i do opisu posta, chyba że podasz osobny opis niżej.</p>
                 <div class="form-group">
-                  <textarea id="post-custom-text" rows="5" placeholder="Treść ogłoszenia..." style="width: 100%; padding: 12px; border-radius: 8px; border: 1px solid rgba(255,255,255,0.1); background: rgba(0,0,0,0.2); color: white; resize: vertical;"></textarea>
+                  <textarea id="post-custom-text" rows="5" placeholder="Treść ogłoszenia"></textarea>
                 </div>
                 
                 <div class="form-group spacer-top">
-                  <label for="post-custom-font-size">Wielkość czcionki tekstu grafiki (<span id="font-size-val">46</span>px)</label>
-                  <input type="range" id="post-custom-font-size" min="20" max="80" value="46" style="width: 100%;" />
+                  <label for="post-custom-font-size">Rozmiar tekstu na grafice: <span id="font-size-val">46</span> px</label>
+                  <input type="range" id="post-custom-font-size" min="20" max="80" value="46" />
                 </div>
                 
-                <div class="form-group spacer-top" style="border-top: 1px solid rgba(255,255,255,0.1); padding-top: 15px;">
-                  <label for="post-custom-caption">Opis posta (treść pod obrazkiem)</label>
-                  <textarea id="post-custom-caption" rows="3" placeholder="Wpisz opis, który pojawi się w poście na Facebooku, Instagramie i Twitterze (zamiast powielać treść z grafiki)..." style="width: 100%; padding: 12px; border-radius: 8px; border: 1px solid rgba(255,255,255,0.1); background: rgba(0,0,0,0.2); color: white; resize: vertical;"></textarea>
+                <div class="form-group spacer-top">
+                  <label for="post-custom-caption">Opis posta</label>
+                  <textarea id="post-custom-caption" rows="3" placeholder="Opis pod grafiką na Facebooku, Instagramie i X"></textarea>
                 </div>
                 
                 <!-- Custom titles and footer inputs -->
                 <div class="form-group spacer-top">
-                  <label for="post-custom-title-sub">Podtytuł (np. WAŻNA INFORMACJA)</label>
-                  <input type="text" id="post-custom-title-sub" value="WAŻNA INFORMACJA" />
+                  <label for="post-custom-title-sub">Podtytuł</label>
+                  <input type="text" id="post-custom-title-sub" value="" placeholder="np. Zmiana godziny publikacji" />
                 </div>
                 <div class="form-group spacer-top">
-                  <label for="post-custom-title-main">Tytuł główny (np. OGŁOSZENIE)</label>
-                  <input type="text" id="post-custom-title-main" value="OGŁOSZENIE" />
+                  <label for="post-custom-title-main">Tytuł</label>
+                  <input type="text" id="post-custom-title-main" value="Ogłoszenie" />
                 </div>
                 <div class="form-group spacer-top">
-                  <label for="post-custom-footer">Tekst w stopce (np. Informacja Bota)</label>
-                  <input type="text" id="post-custom-footer" value="Informacja Bota" />
+                  <label for="post-custom-footer">Tekst w stopce</label>
+                  <input type="text" id="post-custom-footer" value="Informacja bota" />
                 </div>
               </div>
 
               <!-- Submit -->
               <div class="settings-actions spacer-top">
                 <div id="posting-status" class="status-msg"></div>
-                <button type="submit" class="btn btn-primary btn-glow" id="btn-submit-post">
-                  <i data-lucide="send"></i> Wyślij Post Teraz
+                <button type="submit" class="btn btn-primary" id="btn-submit-post">
+                  <i data-lucide="send"></i> Opublikuj teraz
                 </button>
               </div>
             </form>
@@ -282,11 +276,11 @@
           <div class="customizer-preview" id="posting-preview-panel" style="display: none;">
             <div class="content-card glass-panel">
               <div class="card-header">
-                <h3>Podgląd na żywo</h3>
+                <h3>Podgląd</h3>
               </div>
               <div class="card-body text-center">
                 <div class="image-preview-container">
-                  <img id="image-posting-preview" src="" alt="Podgląd ogłoszenia..." />
+                  <img id="image-posting-preview" src="" alt="Podgląd grafiki własnego posta" />
                   <div class="preview-spinner" id="posting-preview-loader" style="display: none;">
                     <div class="spinner"></div>
                   </div>
@@ -302,39 +296,39 @@
         <div class="customizer-grid">
           <!-- Settings Column -->
           <div class="customizer-settings glass-panel">
-            <h3>Konfiguracja szablonu graficznego</h3>
-            <p class="description">Ustawienia te zmieniają tło i teksty bezpośrednio w pliku graficznym bota.</p>
+            <h3>Wygląd grafiki</h3>
+            <p class="description">Nazwa profilu zapisuje się w <code>.env</code>. Tło zmienia tylko podgląd.</p>
 
             <form id="customizer-form" class="spacer-top">
               <div class="form-group">
-                <label for="input-branding">Branding / Nazwa Profilu w stopce:</label>
+                <label for="input-branding">Nazwa profilu w stopce</label>
                 <input type="text" id="input-branding" placeholder="@MaksymalneCenyPaliw" value="@MaksymalneCenyPaliw" />
-                <span class="help-txt">Zostanie umieszczony w prawym dolnym rogu wygenerowanej grafiki.</span>
+                <span class="help-txt">Prawy dolny róg grafiki, obok logo</span>
               </div>
 
               <div class="form-group">
-                <label>Paleta kolorów tła (Gradient):</label>
+                <label>Tło</label>
                 <div class="gradient-presets">
-                  <button type="button" class="preset-btn" data-bg1="#0f172a" data-bg2="#1e1b4b" style="background: linear-gradient(135deg, #0f172a, #1e1b4b);"></button>
-                  <button type="button" class="preset-btn" data-bg1="#020617" data-bg2="#311042" style="background: linear-gradient(135deg, #020617, #311042);"></button>
-                  <button type="button" class="preset-btn active" data-bg1="#060517" data-bg2="#170514" style="background: linear-gradient(135deg, #060517, #170514);"></button>
-                  <button type="button" class="preset-btn" data-bg1="#0f172a" data-bg2="#0f172a" style="background: #0f172a;"></button>
+                  <button type="button" class="preset-btn" title="Granat" aria-label="Granat" data-bg1="#0f172a" data-bg2="#1e1b4b" style="background: linear-gradient(135deg, #0f172a, #1e1b4b);"></button>
+                  <button type="button" class="preset-btn" title="Śliwka" aria-label="Śliwka" data-bg1="#020617" data-bg2="#311042" style="background: linear-gradient(135deg, #020617, #311042);"></button>
+                  <button type="button" class="preset-btn active" title="Domyślne" aria-label="Domyślne" data-bg1="#060517" data-bg2="#170514" style="background: linear-gradient(135deg, #060517, #170514);"></button>
+                  <button type="button" class="preset-btn" title="Grafit" aria-label="Grafit" data-bg1="#0f172a" data-bg2="#0f172a" style="background: #0f172a;"></button>
                 </div>
               </div>
 
               <div class="color-pickers form-row">
                 <div class="form-group col-half">
-                  <label for="color-bg1">Kolor startowy gradientu:</label>
+                  <label for="color-bg1">Kolor u góry</label>
                   <input type="color" id="color-bg1" value="#060517" />
                 </div>
                 <div class="form-group col-half">
-                  <label for="color-bg2">Kolor końcowy gradientu:</label>
+                  <label for="color-bg2">Kolor u dołu</label>
                   <input type="color" id="color-bg2" value="#170514" />
                 </div>
               </div>
 
               <div class="form-actions spacer-top">
-                <button type="button" class="btn btn-primary" id="btn-save-branding">Zastosuj zmiany</button>
+                <button type="button" class="btn btn-primary" id="btn-save-branding">Zapisz nazwę profilu</button>
               </div>
             </form>
           </div>
@@ -343,14 +337,14 @@
           <div class="customizer-preview">
             <div class="content-card glass-panel">
               <div class="card-header">
-                <h3>Aktualny podgląd z Twoimi zmianami</h3>
+                <h3>Podgląd</h3>
                 <div class="tabs-mini">
-                  <button class="mini-tab-cust active" data-preview-type="maxPrices">Ceny Maksymalne</button>
+                  <button class="mini-tab-cust active" data-preview-type="maxPrices">Ceny maksymalne</button>
                 </div>
               </div>
               <div class="card-body text-center">
                 <div class="image-preview-container">
-                  <img id="image-custom-preview" src="" alt="Podgląd karty graficznej..." />
+                  <img id="image-custom-preview" src="" alt="Podgląd grafiki z wybranym tłem" />
                 </div>
               </div>
             </div>
@@ -361,84 +355,84 @@
       <!-- TAB: SETTINGS -->
       <section class="tab-content" id="tab-settings">
         <div class="glass-panel settings-form-container">
-          <h3>Dane uwierzytelniające API</h3>
-          <p class="description">Te klucze są zapisywane wyłącznie **lokalnie** na Twoim komputerze w pliku `.env`. Pozwalają botowi na rzeczywiste publikowanie postów.</p>
+          <h3>Klucze API</h3>
+          <p class="description">Klucze zapisują się tylko lokalnie, w pliku <code>.env</code> na tym komputerze. Bot w GitHub Actions używa sekretów repozytorium.</p>
 
           <form id="api-settings-form" class="spacer-top">
             <!-- Mode Toggle -->
             <div class="settings-section">
-              <h4>MOCK MODE (Tryb Symulacji)</h4>
+              <h4>Tryb symulacji</h4>
               <div class="form-group checkbox-group">
                 <label class="switch-container">
                   <input type="checkbox" id="check-mock-mode" checked />
                   <span class="slider"></span>
                 </label>
                 <div class="switch-details">
-                  <span class="switch-title">Uruchom w trybie symulacji</span>
-                  <span class="switch-desc">Włączone: Posty będą zapisywane lokalnie w folderze /history (idealne do testów). Wyłączone: Posty będą wysyłane na prawdziwe portale.</span>
+                  <span class="switch-title">Symuluj publikację</span>
+                  <span class="switch-desc">Włączone: posty zapisują się w folderze history. Wyłączone: posty trafiają na Facebooka, Instagram i X.</span>
                 </div>
               </div>
             </div>
 
             <!-- Twitter / X -->
             <div class="settings-section spacer-top">
-              <h4>Klucze API Twitter / X</h4>
+              <h4>X</h4>
               <div class="form-row">
                 <div class="form-group col-half">
-                  <label for="input-x-key">API Key (Consumer Key):</label>
-                  <input type="password" id="input-x-key" placeholder="Wklej API Key..." />
+                  <label for="input-x-key">API Key</label>
+                  <input type="password" id="input-x-key" placeholder="API Key" />
                 </div>
                 <div class="form-group col-half">
-                  <label for="input-x-secret">API Key Secret:</label>
-                  <input type="password" id="input-x-secret" placeholder="Wklej API Key Secret..." />
+                  <label for="input-x-secret">API Key Secret</label>
+                  <input type="password" id="input-x-secret" placeholder="API Key Secret" />
                 </div>
               </div>
               <div class="form-row">
                 <div class="form-group col-half">
-                  <label for="input-x-token">Access Token:</label>
-                  <input type="password" id="input-x-token" placeholder="Wklej Access Token..." />
+                  <label for="input-x-token">Access Token</label>
+                  <input type="password" id="input-x-token" placeholder="Access Token" />
                 </div>
                 <div class="form-group col-half">
-                  <label for="input-x-token-secret">Access Token Secret:</label>
-                  <input type="password" id="input-x-token-secret" placeholder="Wklej Access Token Secret..." />
+                  <label for="input-x-token-secret">Access Token Secret</label>
+                  <input type="password" id="input-x-token-secret" placeholder="Access Token Secret" />
                 </div>
               </div>
             </div>
 
             <!-- Meta / FB / IG -->
             <div class="settings-section spacer-top">
-              <h4>Klucze API Meta (Facebook &amp; Instagram)</h4>
+              <h4>Meta (Facebook i Instagram)</h4>
               <div class="form-group">
-                <label for="input-meta-token">Page Access Token (Stały token dostępu do strony):</label>
-                <input type="password" id="input-meta-token" placeholder="Wklej token dostępu Meta Graph API..." />
+                <label for="input-meta-token">Page Access Token</label>
+                <input type="password" id="input-meta-token" placeholder="Stały token strony z Meta Graph API" />
               </div>
               <div class="form-row">
                 <div class="form-group col-half">
-                  <label for="input-meta-page-id">Facebook Page ID (ID Fanpage):</label>
-                  <input type="text" id="input-meta-page-id" placeholder="Wprowadź ID Strony na Facebooku..." />
+                  <label for="input-meta-page-id">ID strony na Facebooku</label>
+                  <input type="text" id="input-meta-page-id" placeholder="Page ID" />
                 </div>
                 <div class="form-group col-half">
-                  <label for="input-meta-ig-id">Instagram Business Account ID:</label>
-                  <input type="text" id="input-meta-ig-id" placeholder="Wprowadź ID Profesjonalnego konta Instagram..." />
+                  <label for="input-meta-ig-id">ID konta Instagram Business</label>
+                  <input type="text" id="input-meta-ig-id" placeholder="Instagram Business Account ID" />
                 </div>
               </div>
             </div>
 
             <!-- ImgBB -->
             <div class="settings-section spacer-top">
-              <h4>Przechowywanie zdjęć w chmurze (Instagram)</h4>
-              <p class="description">Instagram API wymaga, by zdjęcia były dostępne pod publicznym adresem URL. Bot używa darmowego hostingu **ImgBB** do tymczasowego przesyłania wygenerowanej grafiki.</p>
+              <h4>Hosting grafik dla Instagrama</h4>
+              <p class="description">Instagram przyjmuje tylko grafiki z publicznym adresem URL, więc bot wysyła je najpierw do ImgBB.</p>
               <div class="form-group">
-                <label for="input-imgbb-key">ImgBB API Key:</label>
-                <input type="password" id="input-imgbb-key" placeholder="Wklej klucz API ze strony api.imgbb.com..." />
-                <span class="help-txt">Klucz uzyskasz darmowo po zarejestrowaniu się na stronie api.imgbb.com</span>
+                <label for="input-imgbb-key">ImgBB API Key</label>
+                <input type="password" id="input-imgbb-key" placeholder="Klucz z api.imgbb.com" />
+                <span class="help-txt">Darmowy po rejestracji na api.imgbb.com</span>
               </div>
             </div>
 
             <!-- Status Alerts & Submit -->
             <div class="settings-actions spacer-top">
               <div id="settings-save-status" class="status-msg"></div>
-              <button type="submit" class="btn btn-primary" id="btn-save-settings">Zapisz konfigurację w pliku .env</button>
+              <button type="submit" class="btn btn-primary" id="btn-save-settings">Zapisz w .env</button>
             </div>
           </form>
         </div>
@@ -450,15 +444,15 @@
           <div class="console-header">
             <div class="title-with-icon">
               <span class="console-dot"></span>
-              <h3>Terminal bota - Logi w czasie rzeczywistym</h3>
+              <h3>Logi bota</h3>
             </div>
             <button class="btn btn-secondary btn-sm" id="btn-clear-console">
-              <i data-lucide="trash-2"></i> Wyczyść widok
+              <i data-lucide="eraser"></i> Wyczyść widok
             </button>
           </div>
           <div class="console-body" id="console-output">
             <!-- Logs will render here -->
-            <div class="console-line system">[SYSTEM] Łączenie ze strumieniem logów...</div>
+            <div class="console-line system">[SYSTEM] Łączenie z logami</div>
           </div>
         </div>
       </section>

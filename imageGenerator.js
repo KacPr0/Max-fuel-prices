@@ -42,6 +42,28 @@ function getPriceDiff(tomorrowStr, todayStr) {
   }
 }
 
+const WEEKDAYS_GENITIVE = ['niedzieli', 'poniedziałku', 'wtorku', 'środy', 'czwartku', 'piątku', 'soboty'];
+
+// "2026-11-24" -> { weekday: "wtorku", date: "24 listopada 2026" }
+function effectiveDateParts(isoDate) {
+  const d = new Date(`${isoDate}T12:00:00Z`);
+  if (Number.isNaN(d.getTime())) return { weekday: '', date: isoDate };
+  return {
+    weekday: WEEKDAYS_GENITIVE[d.getUTCDay()],
+    date: d.toLocaleDateString('pl-PL', { day: 'numeric', month: 'long', year: 'numeric', timeZone: 'UTC' })
+  };
+}
+
+// "2026-11-24" -> "wtorku, 24 listopada 2026" (używane też w opisach postów)
+function formatEffectiveDate(isoDate) {
+  const { weekday, date } = effectiveDateParts(isoDate);
+  return weekday ? `${weekday}, ${date}` : date;
+}
+
+function escapeXml(str) {
+  return String(str).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&apos;' }[c]));
+}
+
  // Generates a beautiful SVG string for Maximum Fuel Prices.
 function generateMaxPricesSVG(data, brandingText, customOptions = {}) {
   const {
@@ -51,8 +73,11 @@ function generateMaxPricesSVG(data, brandingText, customOptions = {}) {
     on
   } = data;
 
-  const todayDate = dates[0];
-  const tomorrowDate = dates[1];
+  const effective = effectiveDateParts(dates[1]);
+  // "M.P. 2026 poz. 1150 (zm. poz. 1154)" -> "M.P. 2026 poz. 1150, zm. 1154"
+  const noticeRef = data.source
+    ? data.source.replace(/\s*\(zm\. poz\. ([^)]+)\)/, ', zm. $1')
+    : 'Monitor Polski';
 
   const diff95 = getPriceDiff(pb95[1], pb95[0]);
   const diff98 = getPriceDiff(pb98[1], pb98[0]);
@@ -113,23 +138,23 @@ function generateMaxPricesSVG(data, brandingText, customOptions = {}) {
 
       <!-- Fonts Import (Styled directly in SVG) -->
       <style>
-        @import url('https://fonts.googleapis.com/css2?family=Outfit:wght@400;600;800&amp;family=Inter:wght@400;600;700&amp;display=swap');
-        .title-main { font-family: 'Outfit', sans-serif; font-weight: 800; font-size: 56px; fill: #ffffff; letter-spacing: 2px; }
+        .title-main { font-family: 'Outfit', 'Inter', sans-serif; font-weight: 800; font-size: 56px; fill: #ffffff; letter-spacing: 2px; }
         .title-sub { font-family: 'Inter', sans-serif; font-weight: 600; font-size: 26px; fill: #a5b4fc; letter-spacing: 3px; }
         .date-label { font-family: 'Inter', sans-serif; font-weight: 400; font-size: 24px; fill: #94a3b8; }
-        .date-val { font-family: 'Outfit', sans-serif; font-weight: 600; font-size: 38px; fill: #f8fafc; }
+        .date-val { font-family: 'Outfit', 'Inter', sans-serif; font-weight: 600; font-size: 38px; fill: #f8fafc; }
+        .notice-ref { font-family: 'Inter', sans-serif; font-weight: 600; font-size: 28px; fill: #cbd5e1; }
         
-        .fuel-badge-txt { font-family: 'Outfit', sans-serif; font-weight: 800; font-size: 46px; fill: #ffffff; text-anchor: middle; }
+        .fuel-badge-txt { font-family: 'Outfit', 'Inter', sans-serif; font-weight: 800; font-size: 46px; fill: #ffffff; text-anchor: middle; }
         .fuel-name { font-family: 'Inter', sans-serif; font-weight: 700; font-size: 22px; fill: #94a3b8; }
-        .price-val { font-family: 'Outfit', sans-serif; font-weight: 800; font-size: 68px; fill: #ffffff; }
+        .price-val { font-family: 'Outfit', 'Inter', sans-serif; font-weight: 800; font-size: 68px; fill: #ffffff; }
         .price-unit { font-family: 'Inter', sans-serif; font-weight: 600; font-size: 28px; fill: #64748b; }
         
-        .diff-val { font-family: 'Outfit', sans-serif; font-weight: 600; font-size: 30px; }
-        .diff-arrow { font-family: 'Outfit', sans-serif; font-weight: 800; font-size: 36px; }
+        .diff-val { font-family: 'Outfit', 'Inter', sans-serif; font-weight: 600; font-size: 30px; }
+        .diff-arrow { font-family: 'Outfit', 'Inter', sans-serif; font-weight: 800; font-size: 36px; }
         .comparison-label { font-family: 'Inter', sans-serif; font-weight: 400; font-size: 18px; fill: #64748b; }
 
         .footer-txt { font-family: 'Inter', sans-serif; font-weight: 600; font-size: 24px; fill: #475569; letter-spacing: 1px; }
-        .footer-branding { font-family: 'Outfit', sans-serif; font-weight: 800; font-size: 28px; fill: #a5b4fc; letter-spacing: 1.5px; }
+        .footer-branding { font-family: 'Outfit', 'Inter', sans-serif; font-weight: 800; font-size: 28px; fill: #a5b4fc; letter-spacing: 1.5px; }
       </style>
 
       <!-- 1. Background -->
@@ -150,13 +175,13 @@ function generateMaxPricesSVG(data, brandingText, customOptions = {}) {
         <!-- Capsule Card background -->
         <rect width="880" height="110" rx="24" fill="#ffffff" fill-opacity="0.04" stroke="#ffffff" stroke-opacity="0.08" stroke-width="1.5" />
         
-        <!-- Left Side: Today -->
-        <text class="date-label" x="40" y="45">Obowiązuje od:</text>
-        <text class="date-val" x="40" y="85">${tomorrowDate}</text>
+        <!-- Lewa strona: od kiedy obowiązują ceny -->
+        <text class="date-label" x="40" y="45">Obowiązują od ${escapeXml(effective.weekday)}</text>
+        <text class="date-val" x="40" y="85">${escapeXml(effective.date)}</text>
 
-        <!-- Dynamic note -->
-        <rect x="520" y="30" width="320" height="50" rx="12" fill="#ef4444" fill-opacity="0.1" stroke="#ef4444" stroke-opacity="0.2" stroke-width="1" />
-        <text font-family="'Inter', sans-serif" font-weight="700" font-size="18" fill="#ef4444" x="680" y="61" text-anchor="middle">URZĘDOWA CENA MAX</text>
+        <!-- Prawa strona: numer obwieszczenia Ministra Energii -->
+        <text class="date-label" x="840" y="45" text-anchor="end">Obwieszczenie Ministra Energii</text>
+        <text class="notice-ref" x="840" y="85" text-anchor="end">${escapeXml(noticeRef)}</text>
       </g>
 
       <!-- 4. Fuel Cards Container -->
@@ -330,14 +355,13 @@ function generateCustomSVG(data, brandingText, customOptions = {}) {
       </defs>
 
       <style>
-        @import url('https://fonts.googleapis.com/css2?family=Outfit:wght@400;600;800&amp;family=Inter:wght@400;600;700&amp;display=swap');
-        .title-main { font-family: 'Outfit', sans-serif; font-weight: 800; font-size: 56px; fill: #ffffff; letter-spacing: 2px; }
+        .title-main { font-family: 'Outfit', 'Inter', sans-serif; font-weight: 800; font-size: 56px; fill: #ffffff; letter-spacing: 2px; }
         .title-sub { font-family: 'Inter', sans-serif; font-weight: 600; font-size: 26px; fill: #38bdf8; letter-spacing: 3px; }
         
         .custom-val { font-family: 'Inter', sans-serif; font-weight: 500; font-size: ${fontSize}px; fill: #f8fafc; text-anchor: middle; line-height: 1.5; }
         
         .footer-txt { font-family: 'Inter', sans-serif; font-weight: 600; font-size: 24px; fill: #94a3b8; letter-spacing: 1px; }
-        .footer-branding { font-family: 'Outfit', sans-serif; font-weight: 800; font-size: 28px; fill: #38bdf8; letter-spacing: 1.5px; }
+        .footer-branding { font-family: 'Outfit', 'Inter', sans-serif; font-weight: 800; font-size: 28px; fill: #38bdf8; letter-spacing: 1.5px; }
       </style>
 
       <rect width="1080" height="1350" fill="url(#bgGrad)" />
@@ -401,6 +425,7 @@ async function generateFuelCard(type, data, brandingText = '@MaksymalneCenyPaliw
 
 module.exports = {
   generateFuelCard,
+  formatEffectiveDate,
   generateMaxPricesSVG,
   generateCustomSVG
 };
